@@ -66,3 +66,10 @@ This repository will contain:
 - Prepare hardware wiring scheme in EasyEDA
 - Define program/software structure in draw.io
 - Initialize repository and project documentation
+
+---
+
+## hardware wiring scheme
+
+![schematics](https://github.com/user-attachments/assets/db5cd557-bc2c-4424-8943-9a8b4f88b989)
+
