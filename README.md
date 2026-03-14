@@ -71,5 +71,5 @@ This repository will contain:
 
 ## hardware wiring scheme
 
-![schematics](https://github.com/user-attachments/assets/db5cd557-bc2c-4424-8943-9a8b4f88b989)
+![schematics](Images/schematics.png)
 
