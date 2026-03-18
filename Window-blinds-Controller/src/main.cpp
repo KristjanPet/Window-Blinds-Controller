@@ -20,22 +20,20 @@ namespace ButtonPins {
     static constexpr gpio_num_t Down = GPIO_NUM_32;
 }
 
-static volatile uint64_t lastIsrTime = 0;
-static volatile uint32_t counter = 0;
+TimerHandle_t debounce_timer;
+
 static QueueHandle_t button_queue;
 
-static void IRAM_ATTR button_isr(void *arg){ //TODO keep ISR short, just send trigger, handle debounce in seprete task
-    uint64_t now = esp_timer_get_time();
+static void IRAM_ATTR buttonIsr(void *arg){
+    xTimerResetFromISR(debounce_timer, NULL);
+}
 
-    if (now - lastIsrTime > 1000000ULL){
-        counter++;
-        uint32_t cnt = counter;
-        BaseType_t higherPriorityTaskWoken = pdFALSE;
-        xQueueSendFromISR(button_queue, &cnt, &higherPriorityTaskWoken);
-        lastIsrTime = now;
-        if(higherPriorityTaskWoken){
-            portYIELD_FROM_ISR();
-        }
+void debounceTimerCallback(TimerHandle_t buttonTimer){
+    if (gpio_get_level(ButtonPins::Up)){
+        ESP_LOGI("BUTTON", "UP button pressed");
+    }
+    else if(gpio_get_level(ButtonPins::Down)){
+        ESP_LOGI("BUTTON", "DOWN button pressed");
     }
 }
 
@@ -61,10 +59,12 @@ static void init(){
 
     button_queue = xQueueCreate(10, sizeof(uint32_t));
 
+    debounce_timer = xTimerCreate("debounce_timer", pdMS_TO_TICKS(50), pdFALSE, NULL, debounceTimerCallback);
+
     gpio_install_isr_service(0); //TODO handle error
 
-    gpio_isr_handler_add(ButtonPins::Down, button_isr, (void*) ButtonPins::Down);
-    gpio_isr_handler_add(ButtonPins::Up, button_isr, (void*) ButtonPins::Up);
+    gpio_isr_handler_add(ButtonPins::Down, buttonIsr, (void*) ButtonPins::Down);
+    gpio_isr_handler_add(ButtonPins::Up, buttonIsr, (void*) ButtonPins::Up);
 }
 
 extern "C" void app_main(void) {
