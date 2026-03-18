@@ -25,15 +25,41 @@ TimerHandle_t debounce_timer;
 static QueueHandle_t button_queue;
 
 static void IRAM_ATTR buttonIsr(void *arg){
-    xTimerResetFromISR(debounce_timer, NULL);
+    gpio_num_t btn = static_cast<gpio_num_t>(reinterpret_cast<uintptr_t>(arg));
+
+    BaseType_t hpTaskWoken = pdFALSE;
+    xQueueSendFromISR(button_queue, &btn, &hpTaskWoken);
+
+    if(hpTaskWoken){
+        portYIELD_FROM_ISR();
+    }
 }
 
-void debounceTimerCallback(TimerHandle_t buttonTimer){
-    if (gpio_get_level(ButtonPins::Up)){
-        ESP_LOGI("BUTTON", "UP button pressed");
-    }
-    else if(gpio_get_level(ButtonPins::Down)){
-        ESP_LOGI("BUTTON", "DOWN button pressed");
+void button_task(void *arg){
+    gpio_num_t btn;
+
+    while(true){
+        if(xQueueReceive(button_queue, &btn, portMAX_DELAY) == pdTRUE){
+            vTaskDelay(pdMS_TO_TICKS(30)); //debounce time
+
+            switch (btn)
+            {
+            case ButtonPins::Up:
+                if(gpio_get_level(ButtonPins::Up)){
+                    ESP_LOGI("BUTTON", "UP button pressed");
+                }
+                break;
+            case ButtonPins::Down:
+                if(gpio_get_level(ButtonPins::Down)){
+                    ESP_LOGI("BUTTON", "DOWN button pressed");
+                }
+                break;
+            default:
+                break;
+            }
+
+            while(xQueueReceive(button_queue, &btn, 0) == pdTRUE) {} //drains extra bounces
+        }
     }
 }
 
@@ -59,12 +85,12 @@ static void init(){
 
     button_queue = xQueueCreate(10, sizeof(uint32_t));
 
-    debounce_timer = xTimerCreate("debounce_timer", pdMS_TO_TICKS(50), pdFALSE, NULL, debounceTimerCallback);
-
     gpio_install_isr_service(0); //TODO handle error
 
     gpio_isr_handler_add(ButtonPins::Down, buttonIsr, (void*) ButtonPins::Down);
     gpio_isr_handler_add(ButtonPins::Up, buttonIsr, (void*) ButtonPins::Up);
+
+    if(xTaskCreate(button_task, "Button", 2048, NULL, 10, NULL) == pdPASS){}
 }
 
 extern "C" void app_main(void) {
@@ -75,9 +101,7 @@ extern "C" void app_main(void) {
     uint32_t buttonCounter;
 
     while (true){
-        if(xQueueReceive(button_queue, &buttonCounter, portMAX_DELAY)){
-            ESP_LOGI("MAIN", "Button pressed %d times.\n", buttonCounter);
-        }
+        vTaskDelay(pdMS_TO_TICKS(100));
     }
     
 }
