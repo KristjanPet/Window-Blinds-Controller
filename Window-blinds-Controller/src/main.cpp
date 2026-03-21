@@ -1,9 +1,9 @@
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-#include "driver/gpio.h"
-#include "driver/gptimer.h"
-#include "esp_check.h"
-#include "esp_log.h"
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
+#include <driver/gpio.h>
+#include <driver/gptimer.h>
+#include <esp_check.h>
+#include <esp_log.h>
 #include <esp_timer.h>
 
 namespace MotorPins {
@@ -11,9 +11,6 @@ namespace MotorPins {
     static constexpr gpio_num_t Dir     = GPIO_NUM_27;
     static constexpr gpio_num_t Enable  = GPIO_NUM_25;
 }
-
-static gptimer_handle_t motorStepTimer = nullptr;
-static volatile bool motorStepLevel = false;
 
 namespace ButtonPins {
     static constexpr gpio_num_t Up   = GPIO_NUM_33;
@@ -157,7 +154,6 @@ extern "C" void app_main(void) {
     vTaskDelay(pdMS_TO_TICKS(1000));
 
     ESP_LOGI("MAIN", "Init complete, running program....");
-    uint32_t buttonCounter;
 
     ESP_ERROR_CHECK(gpio_set_level(MotorPins::Enable, 0));
     ESP_ERROR_CHECK(init_step_timer(100));
