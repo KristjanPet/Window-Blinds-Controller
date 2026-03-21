@@ -1,4 +1,6 @@
-#include <freertos/FreeRTOS.h>
+#pragma once
+
+#include <cstdint>
 
 enum class BlindsState{
     Uncalibrated,
@@ -9,6 +11,12 @@ enum class BlindsState{
     Fault
 };
 
+enum class MotorCommand{
+    MoveUp,
+    MoveDown,
+    Stop
+};
+
 class BlindsController{
 
 private:
@@ -17,7 +25,10 @@ private:
     uint32_t currentStep;
     static constexpr uint32_t maxStep = 100; //TODO temp
 
+    bool sendMotorCommand(MotorCommand dir);
+    bool canAcceptCommand();
+    bool shouldRecalibrate();
 public:
-    BlindsController(/* args */);
-    ~BlindsController();
+    BlindsController();
+    void HandleCommands();
 };
