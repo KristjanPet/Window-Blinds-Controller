@@ -6,12 +6,6 @@
 #include <esp_log.h>
 #include <esp_timer.h>
 
-namespace MotorPins {
-    static constexpr gpio_num_t Step    = GPIO_NUM_26;
-    static constexpr gpio_num_t Dir     = GPIO_NUM_27;
-    static constexpr gpio_num_t Enable  = GPIO_NUM_25;
-}
-
 namespace ButtonPins {
     static constexpr gpio_num_t Up   = GPIO_NUM_33;
     static constexpr gpio_num_t Down = GPIO_NUM_32;
@@ -20,9 +14,6 @@ namespace ButtonPins {
 TimerHandle_t debounce_timer;
 
 static QueueHandle_t button_queue;
-
-static gptimer_handle_t s_timer = nullptr;
-static volatile bool s_step_level = false;
 
 static bool IRAM_ATTR step_timer_callback(gptimer_handle_t timer,
                                           const gptimer_alarm_event_data_t *edata,
@@ -93,20 +84,10 @@ void button_task(void *arg){
 }
 
 static void init(){
-    //stepper motor pins init
-    gpio_config_t motorIoConf = {
-        .pin_bit_mask = (1ULL << MotorPins::Step) | (1ULL << MotorPins::Dir) | (1ULL << MotorPins::Enable),
-        .mode = GPIO_MODE_OUTPUT,
-        .pull_up_en = GPIO_PULLUP_DISABLE,
-        .pull_down_en = GPIO_PULLDOWN_DISABLE,
-        .intr_type = GPIO_INTR_DISABLE
-    };
-    gpio_config(&motorIoConf);
 
-    gpio_set_level(MotorPins::Step, 0);
-    gpio_set_level(MotorPins::Dir, 0);
-    gpio_set_level(MotorPins::Enable, 1);
 
+
+    //button init
     gpio_config_t buttIoConf = {
         .pin_bit_mask = (1ULL << ButtonPins::Up) | (1ULL << ButtonPins::Down),
         .mode = GPIO_MODE_INPUT,
@@ -127,25 +108,9 @@ static void init(){
 }
 
 static esp_err_t init_step_timer(uint32_t toggle_period_us){
-    gptimer_config_t timer_config = {};
-    timer_config.clk_src = GPTIMER_CLK_SRC_DEFAULT;
-    timer_config.direction = GPTIMER_COUNT_UP;
-    timer_config.resolution_hz = 1000000; // 1 tick = 1 us
 
-    ESP_RETURN_ON_ERROR(gptimer_new_timer(&timer_config, &s_timer), "Stepper", "new timer failed");
 
-    gptimer_event_callbacks_t cbs = {};
-    cbs.on_alarm = step_timer_callback;
-    ESP_RETURN_ON_ERROR(gptimer_register_event_callbacks(s_timer, &cbs, nullptr), "Stepper", "register callbacks failed");
-
-    gptimer_alarm_config_t alarm_config = {};
-    alarm_config.reload_count = 0;
-    alarm_config.alarm_count = toggle_period_us;
-    alarm_config.flags.auto_reload_on_alarm = true;
-
-    ESP_RETURN_ON_ERROR(gptimer_set_alarm_action(s_timer, &alarm_config), "Stepper", "set alarm failed");
-    ESP_RETURN_ON_ERROR(gptimer_enable(s_timer), "Stepper", "timer enable failed");
-
+    
     return ESP_OK;
 }
 
