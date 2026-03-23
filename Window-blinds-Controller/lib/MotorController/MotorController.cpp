@@ -3,6 +3,16 @@
 MotorController::MotorController(const MotorPins& pins, const uint32_t& togglePeriodUs)
                              : pins_(pins), togglePeriodUs_(togglePeriodUs) {}
 
+bool IRAM_ATTR MotorController::stepTimerCallback( gptimer_handle_t timer, const gptimer_alarm_event_data_t *edata, void *user_ctx){
+    (void) timer; //not in use
+    (void) edata;
+
+    auto *self = static_cast<MotorController*>(user_ctx);
+    self->stepLevel_ = !self->stepLevel_;
+    gpio_set_level(self->pins_.step, self->stepLevel_);
+    return false; 
+}
+
 esp_err_t MotorController::init(){
     //stepper motor pins init
     gpio_config_t motorIoConf = {
@@ -27,7 +37,7 @@ esp_err_t MotorController::init(){
     ESP_RETURN_ON_ERROR(gptimer_new_timer(&timer_config, &timer_), "Stepper", "timer create failed");
 
     gptimer_event_callbacks_t cbs = {};
-    cbs.on_alarm = step_timer_callback;
+    cbs.on_alarm = stepTimerCallback;
     ESP_RETURN_ON_ERROR(gptimer_register_event_callbacks(timer_, &cbs, nullptr), "Stepper", "register callbacks failed");
 
     gptimer_alarm_config_t alarm_config = {};
@@ -38,4 +48,7 @@ esp_err_t MotorController::init(){
     ESP_RETURN_ON_ERROR(gptimer_set_alarm_action(timer_, &alarm_config), "Stepper", "set alarm failed");
     ESP_RETURN_ON_ERROR(gptimer_enable(timer_), "Stepper", "timer enable failed");
 
+    ESP_ERROR_CHECK(gpio_set_level(pins_.enable, 0));
+
+    return ESP_OK;
 }
