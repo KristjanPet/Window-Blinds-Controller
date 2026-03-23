@@ -9,8 +9,8 @@ struct MotorPins{
     gpio_num_t enable;
 };
 
-class MotorController
-{
+class MotorController{
+    
 private:
     MotorPins pins_;
     gptimer_handle_t timer_ = nullptr;
