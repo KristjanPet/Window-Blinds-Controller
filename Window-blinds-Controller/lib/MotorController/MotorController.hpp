@@ -16,6 +16,7 @@ private:
     gptimer_handle_t timer_ = nullptr;
     volatile bool stepLevel_ = false;
     uint32_t togglePeriodUs_;
+    bool moving = false;
 
     static bool IRAM_ATTR stepTimerCallback(
         gptimer_handle_t timer,
@@ -24,4 +25,6 @@ private:
 public:
     MotorController(const MotorPins& pins, const uint32_t& togglePeriodUs);
     esp_err_t init();
+    esp_err_t moveMotorUp();
+    esp_err_t moveMotorDown();
 };
