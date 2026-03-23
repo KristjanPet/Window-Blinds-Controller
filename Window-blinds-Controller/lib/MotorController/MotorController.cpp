@@ -58,13 +58,11 @@ esp_err_t MotorController::moveMotorDown(){
     if(moving){
         ESP_ERROR_CHECK(gptimer_stop(timer_));
         moving = false;
-        ESP_LOGI("MOTOR", "motor stoped");
     }
     else{
         ESP_ERROR_CHECK(gpio_set_level(pins_.dir, 0));
         ESP_ERROR_CHECK(gptimer_start(timer_));
         moving = true;
-        ESP_LOGI("MOTOR", "motor going down");
     }
     return ESP_OK;
 }
@@ -73,13 +71,11 @@ esp_err_t MotorController::moveMotorUp(){
     if(moving){
         ESP_ERROR_CHECK(gptimer_stop(timer_));
         moving = false;
-        ESP_LOGI("MOTOR", "motor stoped");
     }
     else{
         ESP_ERROR_CHECK(gpio_set_level(pins_.dir, 1));
         ESP_ERROR_CHECK(gptimer_start(timer_));
         moving = true;
-        ESP_LOGI("MOTOR", "motor going up");
     }
     return ESP_OK;
 }

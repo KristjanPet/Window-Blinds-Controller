@@ -5,6 +5,7 @@
 #include <esp_check.h>
 #include <esp_log.h>
 #include <esp_timer.h>
+#include "MotorController.hpp"
 
 namespace ButtonPins {
     static constexpr gpio_num_t Up   = GPIO_NUM_33;
@@ -14,16 +15,6 @@ namespace ButtonPins {
 TimerHandle_t debounce_timer;
 
 static QueueHandle_t button_queue;
-
-static bool IRAM_ATTR step_timer_callback(gptimer_handle_t timer,
-                                          const gptimer_alarm_event_data_t *edata,
-                                          void *user_ctx)
-{
-    // Toggle STEP each alarm event
-    s_step_level = !s_step_level;
-    gpio_set_level(MotorPins::Step, s_step_level);
-    return false; // no higher-priority task woken
-}
 
 static void IRAM_ATTR buttonIsr(void *arg){
     gpio_num_t btn = static_cast<gpio_num_t>(reinterpret_cast<uintptr_t>(arg));
@@ -38,7 +29,8 @@ static void IRAM_ATTR buttonIsr(void *arg){
 
 void button_task(void *arg){
     gpio_num_t btn;
-    static bool moving = false;
+
+    auto *self = static_cast<MotorController*>(arg);
 
     while(true){
         if(xQueueReceive(button_queue, &btn, portMAX_DELAY) == pdTRUE){
@@ -47,31 +39,13 @@ void button_task(void *arg){
             switch (btn)
             {
             case ButtonPins::Up:
-                if(gpio_get_level(ButtonPins::Up)){
-                    if(moving){
-                        ESP_ERROR_CHECK(gptimer_stop(s_timer));
-                        moving = false;
-                    }
-                    else{
-                        ESP_ERROR_CHECK(gpio_set_level(MotorPins::Dir, 0));
-                        ESP_ERROR_CHECK(gptimer_start(s_timer));
-                        moving = true;
-                    }
-                    ESP_LOGI("BUTTON", "UP button pressed");
+                if(gpio_get_level(ButtonPins::Up)){   
+                    self->moveMotorUp();
                 }
                 break;
             case ButtonPins::Down:
                 if(gpio_get_level(ButtonPins::Down)){
-                    if(moving){
-                        ESP_ERROR_CHECK(gptimer_stop(s_timer));
-                        moving = false;
-                    }
-                    else{
-                        ESP_ERROR_CHECK(gpio_set_level(MotorPins::Dir, 1));
-                        ESP_ERROR_CHECK(gptimer_start(s_timer));
-                        moving = true;
-                    }
-                    ESP_LOGI("BUTTON", "DOWN button pressed");
+                    self->moveMotorDown();
                 }
                 break;
             default:
@@ -83,11 +57,8 @@ void button_task(void *arg){
     }
 }
 
-static void init(){
+static void init(){     //button init
 
-
-
-    //button init
     gpio_config_t buttIoConf = {
         .pin_bit_mask = (1ULL << ButtonPins::Up) | (1ULL << ButtonPins::Down),
         .mode = GPIO_MODE_INPUT,
@@ -104,24 +75,20 @@ static void init(){
     gpio_isr_handler_add(ButtonPins::Down, buttonIsr, (void*) ButtonPins::Down);
     gpio_isr_handler_add(ButtonPins::Up, buttonIsr, (void*) ButtonPins::Up);
 
-    if(xTaskCreate(button_task, "Button", 2048, NULL, 10, NULL) == pdPASS){}
-}
-
-static esp_err_t init_step_timer(uint32_t toggle_period_us){
-
-
-    
-    return ESP_OK;
 }
 
 extern "C" void app_main(void) {
     init();
+
+    MotorPins motorPins = {GPIO_NUM_26, GPIO_NUM_27, GPIO_NUM_25}; //step, dir, enable
+
+    MotorController motor(motorPins, 100);
+    motor.init();
+
+    if(xTaskCreate(button_task, "Button", 2048, &motor, 10, NULL) == pdPASS){}
+
     vTaskDelay(pdMS_TO_TICKS(1000));
-
     ESP_LOGI("MAIN", "Init complete, running program....");
-
-    ESP_ERROR_CHECK(gpio_set_level(MotorPins::Enable, 0));
-    ESP_ERROR_CHECK(init_step_timer(100));
 
     while (true){
         vTaskDelay(pdMS_TO_TICKS(100));
