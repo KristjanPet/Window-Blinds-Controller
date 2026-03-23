@@ -55,27 +55,27 @@ esp_err_t MotorController::init(){
 }
 
 esp_err_t MotorController::moveMotorDown(){
-    if(moving){
+    if(moving_){
         ESP_ERROR_CHECK(gptimer_stop(timer_));
-        moving = false;
+        moving_ = false;
     }
     else{
         ESP_ERROR_CHECK(gpio_set_level(pins_.dir, 0));
         ESP_ERROR_CHECK(gptimer_start(timer_));
-        moving = true;
+        moving_ = true;
     }
     return ESP_OK;
 }
 
 esp_err_t MotorController::moveMotorUp(){
-    if(moving){
+    if(moving_){
         ESP_ERROR_CHECK(gptimer_stop(timer_));
-        moving = false;
+        moving_ = false;
     }
     else{
         ESP_ERROR_CHECK(gpio_set_level(pins_.dir, 1));
         ESP_ERROR_CHECK(gptimer_start(timer_));
-        moving = true;
+        moving_ = true;
     }
     return ESP_OK;
 }

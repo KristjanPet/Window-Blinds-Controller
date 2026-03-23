@@ -16,7 +16,7 @@ private:
     gptimer_handle_t timer_ = nullptr;
     volatile bool stepLevel_ = false;
     uint32_t togglePeriodUs_;
-    bool moving = false;
+    bool moving_ = false;
 
     static bool IRAM_ATTR stepTimerCallback(
         gptimer_handle_t timer,
