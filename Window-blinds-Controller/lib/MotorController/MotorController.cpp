@@ -12,7 +12,7 @@ bool IRAM_ATTR MotorController::stepTimerCallback( gptimer_handle_t timer, const
     auto *self = static_cast<MotorController*>(user_ctx);
     if (!self) return false;
     self->stepLevel_ = !self->stepLevel_;
-    ESP_RETURN_VOID_ON_ERROR(gpio_set_level(self->pins_.step, self->stepLevel_), TAG, "Toggle step pin failed");
+    ESP_RETURN_ON_ERROR(gpio_set_level(self->pins_.step, self->stepLevel_), TAG, "Toggle step pin failed");
     return false; 
 }
 
@@ -56,14 +56,14 @@ esp_err_t MotorController::init(){
     return ESP_OK;
 }
 
-bool MotorController::getMoving(){
-    return moving_;
+MotorState MotorController::getMotorState(){
+    return motorState_;
 }
 
 esp_err_t MotorController::stop(){
     ESP_RETURN_ON_ERROR(gptimer_stop(timer_), TAG, "Failed to stop gptimer");
     ESP_RETURN_ON_ERROR(gpio_set_level(pins_.step, 0), TAG, "Failed seting step pin");
-    moving_ = false;
+    motorState_ = MotorState::STOPPED;
     stepLevel_ = false;
     ESP_LOGI(TAG, " STOP");
 
@@ -73,7 +73,7 @@ esp_err_t MotorController::stop(){
 esp_err_t MotorController::moveDown(){
     ESP_RETURN_ON_ERROR(gpio_set_level(pins_.dir, 0), TAG, "Failed seting dir pin");
     ESP_RETURN_ON_ERROR(gptimer_start(timer_), TAG, "Failed starting gptimer");
-    moving_ = true;
+    motorState_ = MotorState::DOWN;
     ESP_LOGI(TAG, " DOWN");
     return ESP_OK;
 }
@@ -81,7 +81,7 @@ esp_err_t MotorController::moveDown(){
 esp_err_t MotorController::moveUp(){
     ESP_RETURN_ON_ERROR(gpio_set_level(pins_.dir, 1), TAG, "Failed seting dir pin");
     ESP_RETURN_ON_ERROR(gptimer_start(timer_), TAG, "Failed starting gptimer");
-    moving_ = true;
+    motorState_ = MotorState::UP;
     ESP_LOGI(TAG, " UP");
 
     return ESP_OK;
