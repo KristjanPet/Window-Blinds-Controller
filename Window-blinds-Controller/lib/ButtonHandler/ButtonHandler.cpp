@@ -52,20 +52,20 @@ void ButtonHandler::buttonTask(void *arg){
             case ButtonPressed::UP:
                 if(gpio_get_level(self->pins_.up)){
                     if(self->motor_->getMoving()){   
-                        self->motor_->moveMotorUp();
+                        self->motor_->motorStop();
                     }
                     else{
-                        self->motor_->motorStop();
+                        self->motor_->moveMotorUp();
                     }
                 }
                 break;
             case ButtonPressed::DOWN:
                 if(gpio_get_level(self->pins_.down)){
                     if(self->motor_->getMoving()){   
-                        self->motor_->moveMotorDown();
+                        self->motor_->motorStop();
                     }
                     else{
-                        self->motor_->motorStop();
+                        self->motor_->moveMotorDown();
                     }
                 }
                 break;

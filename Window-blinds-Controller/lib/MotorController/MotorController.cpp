@@ -62,8 +62,12 @@ bool MotorController::getMoving(){
 
 esp_err_t MotorController::motorStop(){
     ESP_ERROR_CHECK(gptimer_stop(timer_));
+    ESP_ERROR_CHECK(gpio_set_level(pins_.step, 0));
     moving_ = false;
+    stepLevel_ = false;
     ESP_LOGI(TAG, " STOP");
+
+    return ESP_OK;
 }
 
 esp_err_t MotorController::moveMotorDown(){
