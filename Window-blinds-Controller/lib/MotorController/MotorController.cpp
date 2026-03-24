@@ -12,7 +12,7 @@ bool IRAM_ATTR MotorController::stepTimerCallback( gptimer_handle_t timer, const
     auto *self = static_cast<MotorController*>(user_ctx);
     if (!self) return false;
     self->stepLevel_ = !self->stepLevel_;
-    gpio_set_level(self->pins_.step, self->stepLevel_);
+    ESP_RETURN_VOID_ON_ERROR(gpio_set_level(self->pins_.step, self->stepLevel_), TAG, "Toggle step pin failed");
     return false; 
 }
 
@@ -25,11 +25,11 @@ esp_err_t MotorController::init(){
         .pull_down_en = GPIO_PULLDOWN_DISABLE,
         .intr_type = GPIO_INTR_DISABLE
     };
-    gpio_config(&motorIoConf);
+    ESP_RETURN_ON_ERROR(gpio_config(&motorIoConf), TAG, "Motor io pin config failed");
 
-    gpio_set_level(pins_.step, 0);
-    gpio_set_level(pins_.dir, 0);
-    gpio_set_level(pins_.enable, 1);
+    ESP_RETURN_ON_ERROR(gpio_set_level(pins_.step, 0), TAG, "Seting step pin failed");
+    ESP_RETURN_ON_ERROR(gpio_set_level(pins_.dir, 0), TAG, "Seting dir pin failed");
+    ESP_RETURN_ON_ERROR(gpio_set_level(pins_.enable, 1), TAG, "Seting enable pin failed");
 
     //init timer
     gptimer_config_t timer_config = {};
@@ -37,21 +37,21 @@ esp_err_t MotorController::init(){
     timer_config.direction = GPTIMER_COUNT_UP;
     timer_config.resolution_hz = 1 * 1000 * 1000; // 1 tick = 1 us
 
-    ESP_RETURN_ON_ERROR(gptimer_new_timer(&timer_config, &timer_), "Stepper", "timer create failed");
+    ESP_RETURN_ON_ERROR(gptimer_new_timer(&timer_config, &timer_), TAG, "timer create failed");
 
     gptimer_event_callbacks_t cbs = {};
     cbs.on_alarm = stepTimerCallback;
-    ESP_RETURN_ON_ERROR(gptimer_register_event_callbacks(timer_, &cbs, this), "Stepper", "register callbacks failed");
+    ESP_RETURN_ON_ERROR(gptimer_register_event_callbacks(timer_, &cbs, this), TAG, "register callbacks failed");
 
     gptimer_alarm_config_t alarm_config = {};
     alarm_config.reload_count = 0;
     alarm_config.alarm_count = togglePeriodUs_;
     alarm_config.flags.auto_reload_on_alarm = true;
 
-    ESP_RETURN_ON_ERROR(gptimer_set_alarm_action(timer_, &alarm_config), "Stepper", "set alarm failed");
-    ESP_RETURN_ON_ERROR(gptimer_enable(timer_), "Stepper", "timer enable failed");
+    ESP_RETURN_ON_ERROR(gptimer_set_alarm_action(timer_, &alarm_config), TAG, "set alarm failed");
+    ESP_RETURN_ON_ERROR(gptimer_enable(timer_), TAG, "timer enable failed");
 
-    ESP_ERROR_CHECK(gpio_set_level(pins_.enable, 0));
+    ESP_RETURN_ON_ERROR(gpio_set_level(pins_.enable, 0), TAG, "Seting enable pin failed");
 
     return ESP_OK;
 }
@@ -60,9 +60,9 @@ bool MotorController::getMoving(){
     return moving_;
 }
 
-esp_err_t MotorController::motorStop(){
-    ESP_ERROR_CHECK(gptimer_stop(timer_));
-    ESP_ERROR_CHECK(gpio_set_level(pins_.step, 0));
+esp_err_t MotorController::stop(){
+    ESP_RETURN_ON_ERROR(gptimer_stop(timer_), TAG, "Failed to stop gptimer");
+    ESP_RETURN_ON_ERROR(gpio_set_level(pins_.step, 0), TAG, "Failed seting step pin");
     moving_ = false;
     stepLevel_ = false;
     ESP_LOGI(TAG, " STOP");
@@ -70,17 +70,17 @@ esp_err_t MotorController::motorStop(){
     return ESP_OK;
 }
 
-esp_err_t MotorController::moveMotorDown(){
-    ESP_ERROR_CHECK(gpio_set_level(pins_.dir, 0));
-    ESP_ERROR_CHECK(gptimer_start(timer_));
+esp_err_t MotorController::moveDown(){
+    ESP_RETURN_ON_ERROR(gpio_set_level(pins_.dir, 0), TAG, "Failed seting dir pin");
+    ESP_RETURN_ON_ERROR(gptimer_start(timer_), TAG, "Failed starting gptimer");
     moving_ = true;
     ESP_LOGI(TAG, " DOWN");
     return ESP_OK;
 }
 
-esp_err_t MotorController::moveMotorUp(){
-    ESP_ERROR_CHECK(gpio_set_level(pins_.dir, 1));
-    ESP_ERROR_CHECK(gptimer_start(timer_));
+esp_err_t MotorController::moveUp(){
+    ESP_RETURN_ON_ERROR(gpio_set_level(pins_.dir, 1), TAG, "Failed seting dir pin");
+    ESP_RETURN_ON_ERROR(gptimer_start(timer_), TAG, "Failed starting gptimer");
     moving_ = true;
     ESP_LOGI(TAG, " UP");
 

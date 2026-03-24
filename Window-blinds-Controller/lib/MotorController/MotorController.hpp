@@ -25,8 +25,8 @@ private:
 public:
     MotorController(const MotorPins& pins, const uint32_t& togglePeriodUs);
     esp_err_t init();
-    esp_err_t moveMotorUp();
-    esp_err_t moveMotorDown();
-    esp_err_t motorStop();
+    esp_err_t moveUp();
+    esp_err_t moveDown();
+    esp_err_t stop();
     bool getMoving();
 };
