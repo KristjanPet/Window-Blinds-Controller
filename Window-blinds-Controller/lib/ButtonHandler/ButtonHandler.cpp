@@ -1,7 +1,19 @@
 #include "ButtonHandler.hpp"
 
-ButtonHandler::ButtonHandler()
-{}
+ButtonHandler::ButtonHandler(ButtonPins pins) : pins_(pins){}
+
+void IRAM_ATTR ButtonHandler::buttonIsr(void *arg){
+    ButtonIsrContext *ctx = static_cast<ButtonIsrContext*>(arg);
+
+    BaseType_t hpTaskWoken = pdFALSE;
+    ButtonPressed btn = ctx->button;
+
+    xQueueSendFromISR(ctx->self->buttonQueue_, &btn, &hpTaskWoken);
+
+    if(hpTaskWoken){
+        portYIELD_FROM_ISR();
+    }
+}
 
 esp_err_t ButtonHandler::init(){
     gpio_config_t buttIoConf = {
@@ -13,12 +25,15 @@ esp_err_t ButtonHandler::init(){
     };
     gpio_config(&buttIoConf);
 
-    buttonQueue_ = xQueueCreate(10, sizeof(uint32_t));
+    buttonQueue_ = xQueueCreate(10, sizeof(ButtonPressed));
+
+    upCtx_ = {this, ButtonPressed::UP};
+    downCtx_ = {this, ButtonPressed::DOWN};
 
     gpio_install_isr_service(0); //TODO handle error
 
-    gpio_isr_handler_add(pins_.down, buttonIsr, (void*)ButtonPressed::DOWN);
-    gpio_isr_handler_add(pins_.up, buttonIsr, (void*)ButtonPressed::UP);
+    gpio_isr_handler_add(pins_.down, buttonIsr, &downCtx_);
+    gpio_isr_handler_add(pins_.up, buttonIsr, &upCtx_);
 
     return ESP_OK;
 }
