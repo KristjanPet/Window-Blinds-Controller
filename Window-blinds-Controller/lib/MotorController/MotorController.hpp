@@ -27,4 +27,6 @@ public:
     esp_err_t init();
     esp_err_t moveMotorUp();
     esp_err_t moveMotorDown();
+    esp_err_t motorStop();
+    bool getMoving();
 };

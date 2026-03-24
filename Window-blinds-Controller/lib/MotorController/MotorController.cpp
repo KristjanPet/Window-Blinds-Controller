@@ -56,32 +56,29 @@ esp_err_t MotorController::init(){
     return ESP_OK;
 }
 
+bool MotorController::getMoving(){
+    return moving_;
+}
+
+esp_err_t MotorController::motorStop(){
+    ESP_ERROR_CHECK(gptimer_stop(timer_));
+    moving_ = false;
+    ESP_LOGI(TAG, " STOP");
+}
+
 esp_err_t MotorController::moveMotorDown(){
-    if(moving_){
-        ESP_ERROR_CHECK(gptimer_stop(timer_));
-        moving_ = false;
-        ESP_LOGI(TAG, " STOP");
-    }
-    else{
-        ESP_ERROR_CHECK(gpio_set_level(pins_.dir, 0));
-        ESP_ERROR_CHECK(gptimer_start(timer_));
-        moving_ = true;
-        ESP_LOGI(TAG, " DOWN");
-    }
+    ESP_ERROR_CHECK(gpio_set_level(pins_.dir, 0));
+    ESP_ERROR_CHECK(gptimer_start(timer_));
+    moving_ = true;
+    ESP_LOGI(TAG, " DOWN");
     return ESP_OK;
 }
 
 esp_err_t MotorController::moveMotorUp(){
-    if(moving_){
-        ESP_ERROR_CHECK(gptimer_stop(timer_));
-        moving_ = false;
-        ESP_LOGI(TAG, " STOP");
-    }
-    else{
-        ESP_ERROR_CHECK(gpio_set_level(pins_.dir, 1));
-        ESP_ERROR_CHECK(gptimer_start(timer_));
-        moving_ = true;
-        ESP_LOGI(TAG, " UP");
-    }
+    ESP_ERROR_CHECK(gpio_set_level(pins_.dir, 1));
+    ESP_ERROR_CHECK(gptimer_start(timer_));
+    moving_ = true;
+    ESP_LOGI(TAG, " UP");
+
     return ESP_OK;
 }
