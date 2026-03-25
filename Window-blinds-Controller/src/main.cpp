@@ -1,10 +1,4 @@
 #include <freertos/FreeRTOS.h>
-#include <freertos/task.h>
-#include <driver/gpio.h>
-#include <driver/gptimer.h>
-#include <esp_check.h>
-#include <esp_log.h>
-#include <esp_timer.h>
 #include "MotorController.hpp"
 #include "ButtonHandler.hpp"
 

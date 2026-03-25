@@ -30,7 +30,7 @@ class ButtonHandler{
 
 private:
     ButtonPins pins_;
-    TimerHandle_t debounceTimer_;// TODO no need maybe?
+    uint8_t debounceTime;// TODO implement in constructor
     QueueHandle_t buttonQueue_ = nullptr;
     ButtonIsrContext upCtx_;
     ButtonIsrContext downCtx_;
