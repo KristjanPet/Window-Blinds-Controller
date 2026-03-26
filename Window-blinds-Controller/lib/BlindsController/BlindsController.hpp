@@ -15,10 +15,10 @@ class BlindsController{
 private:
     BlindsState state_ = BlindsState::IDLE;
     MotorController* motor_;
-    uint32_t currentStep;
+    uint32_t currentStep = 0; //TODO temp
     static constexpr uint32_t maxStep = 100; //TODO temp
 
 public:
     BlindsController(MotorController* motor);
-    void sendCommand(MoveCommand cmd);
+    esp_err_t sendCommand(MoveCommand cmd);
 };

@@ -4,36 +4,45 @@ static const char* TAG = "BLINDS";
 
 BlindsController::BlindsController(MotorController* motor): motor_(motor){}
 
-void BlindsController::sendCommand(MoveCommand cmd){
+esp_err_t BlindsController::sendCommand(MoveCommand cmd){
+    esp_err_t err;
     switch (cmd)
     {
     case MoveCommand::STOP:
-        motor_->stop();
-        state_ = BlindsState::IDLE;
+        err = motor_->stop();
+        if(err == ESP_OK) state_ = BlindsState::IDLE;
+        else return err;
         break;
     case MoveCommand::UP:
         if(state_ != BlindsState::IDLE){   
-            motor_->stop();
-            state_ = BlindsState::IDLE;
+            err = motor_->stop();
+            if(err == ESP_OK) state_ = BlindsState::IDLE;
+            else return err;
         }
         else{
-            motor_->moveUp();
-            state_ = BlindsState::MOVING_UP;
+            err = motor_->moveUp();
+            if(err == ESP_OK) state_ = BlindsState::MOVING_UP;
+            else return err;
         }
         break;
     case MoveCommand::DOWN:
         if(state_ != BlindsState::IDLE){   
-            motor_->stop();
-            state_ = BlindsState::IDLE;
+            err = motor_->stop();
+            if(err == ESP_OK) state_ = BlindsState::IDLE;
+            else return err;
         }
         else{
-            motor_->moveDown();
-            state_ = BlindsState::MOVING_DOWN;
+            err = motor_->moveDown();
+            if(err == ESP_OK) state_ = BlindsState::MOVING_DOWN;
+            else return err;
         }
         break;
     default:
-        motor_->stop();
-        state_ = BlindsState::FAULT;
+        err = motor_->stop();
+        if(err == ESP_OK) state_ = BlindsState::FAULT;
+        else return err;
         break;
     }
+
+    return ESP_OK;
 }
