@@ -1,7 +1,7 @@
 #include "ButtonHandler.hpp"
 
-ButtonHandler::ButtonHandler(ButtonPins* pins, MotorController* motor)
-             : pins_(*pins), motor_(motor){}
+ButtonHandler::ButtonHandler(ButtonPins* pins, BlindsController* blindsCtrl)
+             : pins_(*pins), blindsCtrl_(blindsCtrl){}
 
 void IRAM_ATTR ButtonHandler::buttonIsr(void *arg){
     ButtonIsrContext *ctx = static_cast<ButtonIsrContext*>(arg);
@@ -47,20 +47,29 @@ void ButtonHandler::buttonTask(void *arg){
         if(xQueueReceive(self->buttonQueue_, &btn, portMAX_DELAY) == pdTRUE){
             vTaskDelay(pdMS_TO_TICKS(30)); //debounce time
 
-            switch (btn)
-            {
-            case ButtonPressed::UP:
-                if(gpio_get_level(self->pins_.up)){
-                    self->motor_->sendCommand(MoveCommand::UP);
+            gpio_num_t pin;
+            MoveCommand cmd;
+
+            switch (btn){
+                case ButtonPressed::UP:
+                    pin = self->pins_.up;
+                    cmd = MoveCommand::UP;
+                    break;
+                case ButtonPressed::DOWN:
+                    pin = self->pins_.down;
+                    cmd = MoveCommand::DOWN;
+                    break;
+                default:
+                    continue;
+            }
+
+            if (gpio_get_level(pin)) {
+                self->blindsCtrl_->sendCommand(cmd);
+
+                // wait until release
+                while (gpio_get_level(pin)) {
+                    vTaskDelay(pdMS_TO_TICKS(10));
                 }
-                break;
-            case ButtonPressed::DOWN:
-                if(gpio_get_level(self->pins_.down)){
-                    self->motor_->sendCommand(MoveCommand::DOWN);
-                }
-                break;
-            default:
-                break;
             }
 
             while(xQueueReceive(self->buttonQueue_, &btn, 0) == pdTRUE) {} //drains extra bounces

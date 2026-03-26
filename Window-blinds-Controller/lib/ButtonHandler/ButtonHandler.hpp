@@ -7,8 +7,7 @@
 #include <driver/gpio.h>
 #include <esp_check.h>
 #include <portmacro.h>
-#include "MotorController.hpp"
-#include "Types.hpp"
+#include "BlindsController.hpp"
 
 enum class ButtonPressed : uint8_t{
     UP,
@@ -35,11 +34,11 @@ private:
     QueueHandle_t buttonQueue_ = nullptr;
     ButtonIsrContext upCtx_;
     ButtonIsrContext downCtx_;
-    MotorController* motor_;
+    BlindsController* blindsCtrl_;
 
     static void IRAM_ATTR buttonIsr(void *arg);
 public:
-    ButtonHandler(ButtonPins* pins, MotorController* motor);
+    ButtonHandler(ButtonPins* pins, BlindsController* blindsCtrl);
     esp_err_t init();
     static void buttonTask(void *arg);
 };
