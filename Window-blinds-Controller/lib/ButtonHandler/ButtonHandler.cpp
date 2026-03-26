@@ -1,5 +1,7 @@
 #include "ButtonHandler.hpp"
 
+static const char* TAG = "BUTTON";
+
 ButtonHandler::ButtonHandler(ButtonPins* pins, BlindsController* blindsCtrl)
              : pins_(*pins), blindsCtrl_(blindsCtrl){}
 
@@ -64,10 +66,12 @@ void ButtonHandler::buttonTask(void *arg){
             }
 
             if (gpio_get_level(pin)) {
-                self->blindsCtrl_->sendCommand(cmd);
+                esp_err_t err = self->blindsCtrl_->sendCommand(cmd);
+                if(err != ESP_OK){
+                    ESP_LOGE(TAG, "Error sending command: %s", esp_err_to_name(err));
+                }
 
-                // wait until release
-                while (gpio_get_level(pin)) {
+                while (gpio_get_level(pin)) { //TODO remove after implementing schmit trigger
                     vTaskDelay(pdMS_TO_TICKS(10));
                 }
             }
