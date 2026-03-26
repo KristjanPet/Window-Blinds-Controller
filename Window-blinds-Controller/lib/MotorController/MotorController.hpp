@@ -2,7 +2,6 @@
 #include <driver/gpio.h>
 #include <driver/gptimer.h>
 #include <esp_check.h>
-#include "Types.hpp"
 
 enum class MotorState{
     STOPPED,
@@ -23,11 +22,7 @@ private:
     gptimer_handle_t timer_ = nullptr;
     volatile bool stepLevel_ = false;
     uint32_t togglePeriodUs_;
-    MotorState motorState_ = MotorState::STOPPED;
-
-    esp_err_t moveUp();
-    esp_err_t moveDown();
-    esp_err_t stop();
+    MotorState motorState_ = MotorState::STOPPED; //TODO maybe not needed
 
     static bool IRAM_ATTR stepTimerCallback(
         gptimer_handle_t timer,
@@ -36,5 +31,7 @@ private:
 public:
     MotorController(const MotorPins& pins, const uint32_t& togglePeriodUs);
     esp_err_t init();
-    void sendCommand(MoveCommand cmd);
+    esp_err_t moveUp();
+    esp_err_t moveDown();
+    esp_err_t stop();
 };

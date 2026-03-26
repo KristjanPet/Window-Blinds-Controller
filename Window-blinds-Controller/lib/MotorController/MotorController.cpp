@@ -6,14 +6,18 @@ MotorController::MotorController(const MotorPins& pins, const uint32_t& togglePe
                              : pins_(pins), togglePeriodUs_(togglePeriodUs) {}
 
 bool IRAM_ATTR MotorController::stepTimerCallback( gptimer_handle_t timer, const gptimer_alarm_event_data_t *edata, void *user_ctx){
-    (void) timer; //not in use
-    (void) edata;
+    (void)timer; //not in use
+    (void)edata;
 
     auto *self = static_cast<MotorController*>(user_ctx);
-    if (!self) return false;
+    if (!self) {
+        return false;
+    }
+
     self->stepLevel_ = !self->stepLevel_;
-    ESP_RETURN_ON_ERROR(gpio_set_level(self->pins_.step, self->stepLevel_), TAG, "Toggle step pin failed");
-    return false; 
+    gpio_set_level(self->pins_.step, self->stepLevel_);
+
+    return false;
 }
 
 esp_err_t MotorController::init(){
@@ -54,35 +58,6 @@ esp_err_t MotorController::init(){
     ESP_RETURN_ON_ERROR(gpio_set_level(pins_.enable, 0), TAG, "Seting enable pin failed");
 
     return ESP_OK;
-}
-
-void MotorController::sendCommand(MoveCommand cmd){
-    switch (cmd)
-    {
-    case MoveCommand::STOP:
-        stop();
-        break;
-    case MoveCommand::UP:
-        if(motorState_ != MotorState::STOPPED){   
-            stop();
-        }
-        else{
-            moveUp();
-        }
-        break;
-    case MoveCommand::DOWN:
-        if(motorState_ != MotorState::STOPPED){   
-            stop();
-        }
-        else{
-            moveDown();
-        }
-        break;
-    default:
-        stop();
-        break;
-    }
-
 }
 
 esp_err_t MotorController::stop(){

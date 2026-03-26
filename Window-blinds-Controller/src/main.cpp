@@ -11,11 +11,13 @@ extern "C" void app_main(void) {
     MotorController motor(motorPins, 100);
     motor.init();
 
+    BlindsController blinds(&motor);
+
     ButtonPins buttonPins = {GPIO_NUM_33, GPIO_NUM_32}; //up, down
-    ButtonHandler buttonHandler(&buttonPins, &motor);
+    ButtonHandler buttonHandler(&buttonPins, &blinds);
     buttonHandler.init();
 
-    if(xTaskCreate(ButtonHandler::buttonTask, "Button", 2048, &buttonHandler, 10, NULL) == pdPASS){}
+    if(xTaskCreate(ButtonHandler::buttonTask, "Button", 4096, &buttonHandler, 10, NULL) == pdPASS){}
 
     vTaskDelay(pdMS_TO_TICKS(1000));
     ESP_LOGI(TAG_MAIN, "Init complete, running program....");
