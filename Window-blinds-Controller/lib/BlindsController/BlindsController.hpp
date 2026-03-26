@@ -13,7 +13,7 @@ enum class BlindsState{
 class BlindsController{
 
 private:
-    BlindsState state_;
+    BlindsState state_ = BlindsState::IDLE;
     MotorController* motor_;
     uint32_t currentStep;
     static constexpr uint32_t maxStep = 100; //TODO temp
