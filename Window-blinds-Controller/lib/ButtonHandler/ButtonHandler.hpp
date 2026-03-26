@@ -8,6 +8,7 @@
 #include <esp_check.h>
 #include <portmacro.h>
 #include "MotorController.hpp"
+#include "Types.hpp"
 
 enum class ButtonPressed : uint8_t{
     UP,
@@ -30,7 +31,7 @@ class ButtonHandler{
 
 private:
     ButtonPins pins_;
-    uint8_t debounceTime;// TODO implement in constructor
+    uint8_t debounceTime_;// TODO implement in constructor
     QueueHandle_t buttonQueue_ = nullptr;
     ButtonIsrContext upCtx_;
     ButtonIsrContext downCtx_;

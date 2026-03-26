@@ -56,8 +56,33 @@ esp_err_t MotorController::init(){
     return ESP_OK;
 }
 
-MotorState MotorController::getMotorState(){
-    return motorState_;
+void MotorController::sendCommand(MoveCommand cmd){
+    switch (cmd)
+    {
+    case MoveCommand::STOP:
+        stop();
+        break;
+    case MoveCommand::UP:
+        if(motorState_ != MotorState::STOPPED){   
+            stop();
+        }
+        else{
+            moveUp();
+        }
+        break;
+    case MoveCommand::DOWN:
+        if(motorState_ != MotorState::STOPPED){   
+            stop();
+        }
+        else{
+            moveDown();
+        }
+        break;
+    default:
+        stop();
+        break;
+    }
+
 }
 
 esp_err_t MotorController::stop(){
