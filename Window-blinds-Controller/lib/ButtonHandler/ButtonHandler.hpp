@@ -1,9 +1,5 @@
 #pragma once
 #include <freertos/FreeRTOS.h>
-#include <freertos/timers.h>
-#include <freertos/task.h>
-#include <freertos/queue.h>
-#include <freertos/projdefs.h>
 #include <driver/gpio.h>
 #include <esp_check.h>
 #include <portmacro.h>
