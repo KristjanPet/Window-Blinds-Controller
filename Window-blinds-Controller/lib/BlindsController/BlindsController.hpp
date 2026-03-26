@@ -4,10 +4,10 @@
 #include "Types.hpp"
 
 enum class BlindsState{
-    Idle,
-    MovingUp,
-    MovingDown,
-    Fault
+    IDLE,
+    MOVING_UP,
+    MOVING_DOWN,
+    FAULT
 };
 
 class BlindsController{
@@ -20,5 +20,5 @@ private:
 
 public:
     BlindsController(MotorController* motor);
-    void sendMotorCommand(MoveCommand cmd);
+    void sendCommand(MoveCommand cmd);
 };
