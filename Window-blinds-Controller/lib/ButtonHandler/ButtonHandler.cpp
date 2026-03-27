@@ -2,7 +2,7 @@
 
 static const char* TAG = "BUTTON";
 
-ButtonHandler::ButtonHandler(ButtonPins* pins, BlindsController* blindsCtrl)
+ButtonHandler::ButtonHandler(ButtonPins* pins, BlindsController& blindsCtrl)
              : pins_(*pins), blindsCtrl_(blindsCtrl){}
 
 void IRAM_ATTR ButtonHandler::buttonIsr(void *arg){
@@ -66,7 +66,7 @@ void ButtonHandler::buttonTask(void *arg){
             }
 
             if (gpio_get_level(pin)) {
-                esp_err_t err = self->blindsCtrl_->sendCommand(cmd);
+                esp_err_t err = self->blindsCtrl_.handleCommand(cmd);
                 if(err != ESP_OK){
                     ESP_LOGE(TAG, "Error sending command: %s", esp_err_to_name(err));
                 }

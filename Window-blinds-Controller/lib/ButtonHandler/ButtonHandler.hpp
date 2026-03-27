@@ -30,11 +30,11 @@ private:
     QueueHandle_t buttonQueue_ = nullptr;
     ButtonIsrContext upCtx_;
     ButtonIsrContext downCtx_;
-    BlindsController* blindsCtrl_;
+    BlindsController& blindsCtrl_;
 
     static void IRAM_ATTR buttonIsr(void *arg);
 public:
-    ButtonHandler(ButtonPins* pins, BlindsController* blindsCtrl);
+    ButtonHandler(ButtonPins* pins, BlindsController& blindsCtrl);
     esp_err_t init();
     static void buttonTask(void *arg);
 };

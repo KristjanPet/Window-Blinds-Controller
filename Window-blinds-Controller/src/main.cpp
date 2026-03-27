@@ -11,10 +11,10 @@ extern "C" void app_main(void) {
     MotorController motor(motorPins, 100);
     motor.init();
 
-    BlindsController blinds(&motor);
+    BlindsController blinds(motor);
 
     ButtonPins buttonPins = {GPIO_NUM_33, GPIO_NUM_32}; //up, down
-    ButtonHandler buttonHandler(&buttonPins, &blinds);
+    ButtonHandler buttonHandler(&buttonPins, blinds);
     buttonHandler.init();
 
     if(xTaskCreate(ButtonHandler::buttonTask, "Button", 4096, &buttonHandler, 10, NULL) == pdPASS){}
