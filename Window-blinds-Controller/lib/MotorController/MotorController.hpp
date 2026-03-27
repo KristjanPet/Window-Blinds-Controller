@@ -2,6 +2,7 @@
 #include <driver/gpio.h>
 #include <driver/gptimer.h>
 #include <esp_check.h>
+#include "IMotor.hpp"
 
 enum class MotorState{
     STOPPED,
@@ -15,7 +16,7 @@ struct MotorPins{
     gpio_num_t enable;
 };
 
-class MotorController{
+class MotorController : public IMotor{
     
 private:
     MotorPins pins_;
@@ -31,7 +32,7 @@ private:
 public:
     MotorController(const MotorPins& pins, const uint32_t& togglePeriodUs);
     esp_err_t init();
-    esp_err_t moveUp();
-    esp_err_t moveDown();
-    esp_err_t stop();
+    esp_err_t moveUp() override;
+    esp_err_t moveDown() override;
+    esp_err_t stop() override;
 };
