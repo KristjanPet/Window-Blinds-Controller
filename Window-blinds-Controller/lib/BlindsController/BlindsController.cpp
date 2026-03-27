@@ -2,7 +2,7 @@
 
 // static const char* TAG = "BLINDS";
 
-BlindsController::BlindsController(MotorController& motor): motor_(motor){}
+BlindsController::BlindsController(IMotor& motor): motor_(motor){}
 
 esp_err_t BlindsController::handleCommand(MoveCommand cmd){ //using toggle style
     esp_err_t err = ESP_OK;

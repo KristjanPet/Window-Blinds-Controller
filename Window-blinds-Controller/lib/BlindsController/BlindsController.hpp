@@ -1,6 +1,6 @@
 #pragma once
 #include <cstdint>
-#include "MotorController.hpp"
+#include "IMotor.hpp"
 #include "Types.hpp"
 
 enum class BlindsState{
@@ -14,9 +14,9 @@ class BlindsController{
 
 private:
     BlindsState state_ = BlindsState::IDLE;
-    MotorController& motor_;
+    IMotor& motor_;
 
 public:
-    BlindsController(MotorController& motor);
+    BlindsController(IMotor& motor);
     esp_err_t handleCommand(MoveCommand cmd);
 };
