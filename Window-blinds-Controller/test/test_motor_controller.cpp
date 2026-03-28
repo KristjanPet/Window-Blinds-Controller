@@ -14,6 +14,37 @@ void test_motor_moving_up(void){
     TEST_ASSERT_EQUAL(LastAction::UP, fMotor.getLastAction());
 }
 
+void test_motor_moving_down(void){
+    FakeMotor fMotor;
+    BlindsController blinds(fMotor);
+
+    TEST_ASSERT_EQUAL(ESP_OK, blinds.handleCommand(MoveCommand::DOWN));
+    TEST_ASSERT_EQUAL(BlindsState::MOVING_DOWN, blinds.getState());
+    TEST_ASSERT_EQUAL(LastAction::DOWN, fMotor.getLastAction());
+}
+
+void test_toggle_style_down_up(void){
+    FakeMotor fMotor;
+    BlindsController blinds(fMotor);
+
+    TEST_ASSERT_EQUAL(ESP_OK, blinds.handleCommand(MoveCommand::DOWN));
+    TEST_ASSERT_EQUAL(ESP_OK, blinds.handleCommand(MoveCommand::UP));
+    TEST_ASSERT_EQUAL(BlindsState::IDLE, blinds.getState());
+    TEST_ASSERT_EQUAL(LastAction::STOP, fMotor.getLastAction());
+}
+
+void test_stop_failure_while_moving_down(void){
+    FakeMotor fMotor;
+    BlindsController blinds(fMotor);
+
+    TEST_ASSERT_EQUAL(ESP_OK, blinds.handleCommand(MoveCommand::DOWN));
+    fMotor.setNextResult(ESP_ERR_INVALID_ARG);
+
+    TEST_ASSERT_EQUAL(ESP_ERR_INVALID_ARG, blinds.handleCommand(MoveCommand::STOP));
+    TEST_ASSERT_EQUAL(BlindsState::MOVING_DOWN, blinds.getState());
+    TEST_ASSERT_EQUAL(LastAction::STOP, fMotor.getLastAction());
+}
+
 void test_toggle_style_up_down(void){
     FakeMotor fMotor;
     BlindsController blinds(fMotor);
@@ -30,7 +61,7 @@ void test_motor_failure(void){
     fMotor.setNextResult(ESP_ERR_INVALID_ARG);
 
     TEST_ASSERT_EQUAL(ESP_ERR_INVALID_ARG, blinds.handleCommand(MoveCommand::UP));
-    TEST_ASSERT_NOT_EQUAL(BlindsState::MOVING_UP, blinds.getState());
+    TEST_ASSERT_EQUAL(BlindsState::IDLE, blinds.getState());
     TEST_ASSERT_EQUAL(LastAction::UP, fMotor.getLastAction());
 }
 
@@ -105,6 +136,39 @@ void test_same_button_toggle_down(void){
     TEST_ASSERT_EQUAL(LastAction::STOP, fMotor.getLastAction());
 }
 
+void test_invalid_command(void){
+    FakeMotor fMotor;
+    BlindsController blinds(fMotor);
+
+    TEST_ASSERT_EQUAL(ESP_ERR_INVALID_ARG, blinds.handleCommand(static_cast<MoveCommand>(99)));
+    TEST_ASSERT_EQUAL(BlindsState::IDLE, blinds.getState());
+    TEST_ASSERT_EQUAL(LastAction::NONE, fMotor.getLastAction());
+}
+
+void test_toggle_down_stop_failure_while_moving_up(void){
+    FakeMotor fMotor;
+    BlindsController blinds(fMotor);
+
+    TEST_ASSERT_EQUAL(ESP_OK, blinds.handleCommand(MoveCommand::UP));
+    fMotor.setNextResult(ESP_ERR_INVALID_ARG);
+
+    TEST_ASSERT_EQUAL(ESP_ERR_INVALID_ARG, blinds.handleCommand(MoveCommand::DOWN));
+    TEST_ASSERT_EQUAL(BlindsState::MOVING_UP, blinds.getState());
+    TEST_ASSERT_EQUAL(LastAction::STOP, fMotor.getLastAction());
+}
+
+void test_toggle_up_stop_failure_while_moving_down(void){
+    FakeMotor fMotor;
+    BlindsController blinds(fMotor);
+
+    TEST_ASSERT_EQUAL(ESP_OK, blinds.handleCommand(MoveCommand::DOWN));
+    fMotor.setNextResult(ESP_ERR_INVALID_ARG);
+
+    TEST_ASSERT_EQUAL(ESP_ERR_INVALID_ARG, blinds.handleCommand(MoveCommand::UP));
+    TEST_ASSERT_EQUAL(BlindsState::MOVING_DOWN, blinds.getState());
+    TEST_ASSERT_EQUAL(LastAction::STOP, fMotor.getLastAction());
+}
+
 extern "C" void app_main(void) {
     UNITY_BEGIN();
     RUN_TEST(test_motor_moving_up);
@@ -117,5 +181,11 @@ extern "C" void app_main(void) {
     RUN_TEST(test_stop_failure);
     RUN_TEST(test_same_button_toggle_up);
     RUN_TEST(test_same_button_toggle_down);
+    RUN_TEST(test_motor_moving_down);
+    RUN_TEST(test_toggle_style_down_up);
+    RUN_TEST(test_stop_failure_while_moving_down);
+    RUN_TEST(test_invalid_command);
+    RUN_TEST(test_toggle_down_stop_failure_while_moving_up);
+    RUN_TEST(test_toggle_up_stop_failure_while_moving_down);
     UNITY_END();
 }
