@@ -85,12 +85,22 @@ void test_stop_failure(void){
     TEST_ASSERT_EQUAL(LastAction::STOP, fMotor.getLastAction());
 }
 
-void test_same_button_toggle(void){
+void test_same_button_toggle_up(void){
     FakeMotor fMotor;
     BlindsController blinds(fMotor);
 
     TEST_ASSERT_EQUAL(ESP_OK, blinds.handleCommand(MoveCommand::UP));
     TEST_ASSERT_EQUAL(ESP_OK, blinds.handleCommand(MoveCommand::UP));
+    TEST_ASSERT_EQUAL(BlindsState::IDLE, blinds.getState());
+    TEST_ASSERT_EQUAL(LastAction::STOP, fMotor.getLastAction());
+}
+
+void test_same_button_toggle_down(void){
+    FakeMotor fMotor;
+    BlindsController blinds(fMotor);
+
+    TEST_ASSERT_EQUAL(ESP_OK, blinds.handleCommand(MoveCommand::DOWN));
+    TEST_ASSERT_EQUAL(ESP_OK, blinds.handleCommand(MoveCommand::DOWN));
     TEST_ASSERT_EQUAL(BlindsState::IDLE, blinds.getState());
     TEST_ASSERT_EQUAL(LastAction::STOP, fMotor.getLastAction());
 }
@@ -105,6 +115,7 @@ extern "C" void app_main(void) {
     RUN_TEST(test_blinds_state_fault_stop);
     RUN_TEST(test_normal_stop_while_moving);
     RUN_TEST(test_stop_failure);
-    RUN_TEST(test_same_button_toggle);
+    RUN_TEST(test_same_button_toggle_up);
+    RUN_TEST(test_same_button_toggle_down);
     UNITY_END();
 }
