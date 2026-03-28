@@ -24,9 +24,20 @@ void test_toggle_style_up_down(void){
     TEST_ASSERT_EQUAL(LastAction::STOP, fMotor.getLastAction());
 }
 
+void test_motor_failure(void){
+    FakeMotor fMotor;
+    BlindsController blinds(fMotor);
+    fMotor.setNextResult(ESP_ERR_INVALID_ARG);
+
+    TEST_ASSERT_EQUAL(ESP_ERR_INVALID_ARG, blinds.handleCommand(MoveCommand::UP));
+    TEST_ASSERT_NOT_EQUAL(BlindsState::MOVING_UP, blinds.getState());
+    TEST_ASSERT_EQUAL(LastAction::UP, fMotor.getLastAction());
+}
+
 extern "C" void app_main(void) {
     UNITY_BEGIN();
     RUN_TEST(test_motor_moving_up);
     RUN_TEST(test_toggle_style_up_down);
+    RUN_TEST(test_motor_failure);
     UNITY_END();
 }
