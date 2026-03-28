@@ -24,6 +24,8 @@ private:
     volatile bool stepLevel_ = false;
     uint32_t togglePeriodUs_;
     MotorState motorState_ = MotorState::STOPPED; //TODO maybe not needed
+    int32_t currentStep_ = 0;
+    static const uint32_t maxStep_ = 1000;
 
     static bool IRAM_ATTR stepTimerCallback(
         gptimer_handle_t timer,

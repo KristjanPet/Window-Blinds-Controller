@@ -48,3 +48,11 @@ esp_err_t BlindsController::handleCommand(MoveCommand cmd){ //using toggle style
     }
     return ESP_ERR_INVALID_ARG;
 }
+
+BlindsState BlindsController::getState(){
+    return state_;
+}
+
+void BlindsController::setState(BlindsState state){
+    state_ = state;
+}
