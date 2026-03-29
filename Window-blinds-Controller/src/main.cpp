@@ -17,7 +17,8 @@ extern "C" void app_main(void) {
     ButtonHandler buttonHandler(&buttonPins, blinds);
     buttonHandler.init();
 
-    if(xTaskCreate(ButtonHandler::buttonTask, "Button", 4096, &buttonHandler, 10, NULL) == pdPASS){}
+    if(xTaskCreate(ButtonHandler::buttonTask, "Button", 4096, &buttonHandler, 3, NULL) == pdPASS){}
+    if(xTaskCreate(MotorController::listenForEdgeStepTask, "Motor", 2048, &motor, 4, &motor.listenForEdgeStepTaskHandle)){}
 
     vTaskDelay(pdMS_TO_TICKS(1000));
     ESP_LOGI(TAG_MAIN, "Init complete, running program....");

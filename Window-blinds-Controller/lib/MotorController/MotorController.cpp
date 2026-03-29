@@ -14,14 +14,21 @@ bool IRAM_ATTR MotorController::stepTimerCallback( gptimer_handle_t timer, const
         return false;
     }
 
-    self->stepLevel_ = !self->stepLevel_;
-    gpio_set_level(self->pins_.step, self->stepLevel_);
+    if((self->currentStep_ > 0 && self->motorState_ == MotorState::DOWN) ||
+        (self->currentStep_ < maxStep_ && self->motorState_ == MotorState::UP)){
+        self->stepLevel_ = !self->stepLevel_;
+        gpio_set_level(self->pins_.step, self->stepLevel_);
 
-    if(self->motorState_ == MotorState::DOWN && self->stepLevel_){
-        self->currentStep_--;
+        if(self->motorState_ == MotorState::DOWN && self->stepLevel_){
+            self->currentStep_--;
+        }
+        else if(self->motorState_ == MotorState::UP && self->stepLevel_){
+            self->currentStep_++;
+        }
     }
-    else if(self->motorState_ == MotorState::UP && self->stepLevel_){
-        self->currentStep_++;
+    else if (self->softLimitHit_ == false){ //limits the trigger while motor is stoping
+        vTaskNotifyGiveFromISR(self->listenForEdgeStepTaskHandle, NULL);
+        self->softLimitHit_ = true;
     }
 
     return false;
@@ -72,7 +79,8 @@ esp_err_t MotorController::stop(){
     ESP_RETURN_ON_ERROR(gpio_set_level(pins_.step, 0), TAG, "Failed seting step pin");
     motorState_ = MotorState::STOPPED;
     stepLevel_ = false;
-    ESP_LOGI(TAG, " STOP");
+    softLimitHit_ = false;
+    ESP_LOGI(TAG, "STOP, step: %d", currentStep_);
 
     return ESP_OK;
 }
@@ -92,4 +100,14 @@ esp_err_t MotorController::moveUp(){
     ESP_LOGI(TAG, " UP");
 
     return ESP_OK;
+}
+
+void MotorController::listenForEdgeStepTask(void* arg){
+    auto *self = static_cast<MotorController*>(arg);
+
+    while(true){
+        ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+        ESP_LOGI(TAG, "Stopped by edge step");
+        self->stop();
+    }
 }
