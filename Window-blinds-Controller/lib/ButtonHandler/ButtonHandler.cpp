@@ -50,16 +50,16 @@ void ButtonHandler::buttonTask(void *arg){
             vTaskDelay(pdMS_TO_TICKS(30)); //debounce time
 
             gpio_num_t pin;
-            MoveCommand cmd;
+            BlindsEvent cmd;
 
             switch (btn){
                 case ButtonPressed::UP:
                     pin = self->pins_.up;
-                    cmd = MoveCommand::UP;
+                    cmd = BlindsEvent::UP;
                     break;
                 case ButtonPressed::DOWN:
                     pin = self->pins_.down;
-                    cmd = MoveCommand::DOWN;
+                    cmd = BlindsEvent::DOWN;
                     break;
                 default:
                     continue;

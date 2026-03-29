@@ -4,10 +4,10 @@
 
 BlindsController::BlindsController(IMotor& motor): motor_(motor){}
 
-esp_err_t BlindsController::handleCommand(MoveCommand cmd){ //using toggle style
+esp_err_t BlindsController::handleCommand(BlindsEvent cmd){ //using toggle style
     esp_err_t err = ESP_OK;
     switch (cmd){
-    case MoveCommand::STOP:
+    case BlindsEvent::STOP:
         err = motor_.stop();
         if(err == ESP_OK ){
             if(state_ != BlindsState::FAULT){
@@ -15,7 +15,7 @@ esp_err_t BlindsController::handleCommand(MoveCommand cmd){ //using toggle style
             }
         }
         return err;
-    case MoveCommand::UP:
+    case BlindsEvent::UP:
         if(state_ != BlindsState::FAULT){
             if(state_ != BlindsState::IDLE){   
                 err = motor_.stop();
@@ -30,7 +30,7 @@ esp_err_t BlindsController::handleCommand(MoveCommand cmd){ //using toggle style
             return ESP_ERR_INVALID_STATE;
         }
         return err;
-    case MoveCommand::DOWN:
+    case BlindsEvent::DOWN:
         if(state_ != BlindsState::FAULT){
             if(state_ != BlindsState::IDLE){   
                 err = motor_.stop();

@@ -1,6 +1,7 @@
 #pragma once
-enum class MoveCommand{
+enum class BlindsEvent{
     UP,
     DOWN,
-    STOP
+    STOP,
+    LIMIT_REACHED
 };
