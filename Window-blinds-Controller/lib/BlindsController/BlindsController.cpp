@@ -4,10 +4,20 @@
 
 BlindsController::BlindsController(IMotor& motor): motor_(motor){}
 
-esp_err_t BlindsController::handleCommand(BlindsEvent cmd){ //using toggle style
+void BlindsController::handleCommandTask(void* arg){ //using toggle style
+    auto* self = static_cast<BlindsController*>(arg);
+
     esp_err_t err = ESP_OK;
     switch (cmd){
     case BlindsEvent::STOP:
+        err = motor_.stop();
+        if(err == ESP_OK ){
+            if(state_ != BlindsState::FAULT){
+                state_ = BlindsState::IDLE;
+            }
+        }
+        return err;
+    case BlindsEvent::LIMIT_REACHED:
         err = motor_.stop();
         if(err == ESP_OK ){
             if(state_ != BlindsState::FAULT){

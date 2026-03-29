@@ -7,7 +7,6 @@ static const char *TAG_MAIN = "MAIN";
 extern "C" void app_main(void) {
 
     MotorPins motorPins = {GPIO_NUM_26, GPIO_NUM_27, GPIO_NUM_25}; //step, dir, enable
-
     MotorController motor(motorPins, 100);
     motor.init();
 
@@ -18,7 +17,8 @@ extern "C" void app_main(void) {
     buttonHandler.init();
 
     if(xTaskCreate(ButtonHandler::buttonTask, "Button", 4096, &buttonHandler, 3, NULL) == pdPASS){}
-    if(xTaskCreate(MotorController::listenForEdgeStepTask, "Motor", 2048, &motor, 4, &motor.listenForEdgeStepTaskHandle)){}
+    if(xTaskCreate(MotorController::listenForEdgeStepTask, "Motor", 2048, &motor, 5, &motor.listenForEdgeStepTaskHandle)){}
+    if(xTaskCreate(BlindsController::handleCommandTask, "Blinds", 2048, &blinds, 4, NULL)){}
 
     vTaskDelay(pdMS_TO_TICKS(1000));
     ESP_LOGI(TAG_MAIN, "Init complete, running program....");

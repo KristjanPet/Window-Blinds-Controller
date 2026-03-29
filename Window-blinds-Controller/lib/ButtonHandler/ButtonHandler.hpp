@@ -5,6 +5,8 @@
 #include <portmacro.h>
 #include "BlindsController.hpp"
 
+class ButtonHandler;
+
 enum class ButtonPressed : uint8_t{
     UP,
     DOWN
@@ -14,8 +16,6 @@ struct ButtonPins{
     gpio_num_t up;
     gpio_num_t down;
 };
-
-class ButtonHandler;
 
 struct ButtonIsrContext{
     ButtonHandler* self;
