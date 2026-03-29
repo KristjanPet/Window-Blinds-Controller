@@ -108,6 +108,9 @@ void MotorController::listenForEdgeStepTask(void* arg){
     while(true){
         ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
         ESP_LOGI(TAG, "Stopped by edge step");
-        self->stop();
+        esp_err_t err = self->stop();
+        if (err != ESP_OK){
+            ESP_LOGE(TAG, "Error sending stop command: %s", esp_err_to_name(err));
+        }        
     }
 }
