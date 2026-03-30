@@ -15,13 +15,13 @@ class BlindsController{
 private:
     BlindsState state_ = BlindsState::IDLE;
     IMotor& motor_;
-
-public:
     QueueHandle_t& commandsQueue_;
     
+public:
     BlindsController(IMotor& motor, QueueHandle_t& commandQueue);
     esp_err_t init();
     static void handleCommandTask(void* arg);
+    esp_err_t postEvent(BlindsEvent event);
     BlindsState getState();
     void setState(BlindsState state);
 };

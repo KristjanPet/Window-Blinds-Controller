@@ -83,6 +83,10 @@ void BlindsController::handleCommandTask(void* arg){ //using toggle style
     }
 }
 
+esp_err_t BlindsController::postEvent(BlindsEvent event){
+    return xQueueSend(commandsQueue_, &event, 0);
+}
+
 BlindsState BlindsController::getState(){
     return state_;
 }

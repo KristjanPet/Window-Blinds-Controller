@@ -8,7 +8,7 @@ extern "C" void app_main(void) {
 
     QueueHandle_t commandsQueueHandle = nullptr;
     MotorPins motorPins = {GPIO_NUM_26, GPIO_NUM_27, GPIO_NUM_25}; //step, dir, enable
-    MotorController motor(motorPins, 100);
+    MotorController motor(motorPins, 120);
     BlindsController blinds(motor, commandsQueueHandle);
     blinds.init();
     motor.init(commandsQueueHandle);

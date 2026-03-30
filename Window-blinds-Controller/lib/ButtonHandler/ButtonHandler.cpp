@@ -66,7 +66,7 @@ void ButtonHandler::buttonTask(void *arg){
             }
 
             if (gpio_get_level(pin)) {
-                err = xQueueSend(self->blindsCtrl_.commandsQueue_, &cmd, 0);
+                err = self->blindsCtrl_.postEvent(cmd);
                 if(err != pdTRUE){
                     ESP_LOGE(TAG, "Error sending command: %s", esp_err_to_name(err));
                 }
