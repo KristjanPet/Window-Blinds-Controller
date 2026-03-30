@@ -28,6 +28,7 @@ private:
     volatile int32_t currentStep_ = 0;
     static constexpr uint32_t maxStep_ = 1000 * 63;
     volatile bool softLimitHit_ = false;
+    QueueHandle_t commandsQueueHandle_;
 
     static bool IRAM_ATTR stepTimerCallback(
         gptimer_handle_t timer,
@@ -37,7 +38,7 @@ public:
     TaskHandle_t listenForEdgeStepTaskHandle = nullptr;
 
     MotorController(const MotorPins& pins, const uint32_t& togglePeriodUs);
-    esp_err_t init();
+    esp_err_t init(QueueHandle_t& commandsQueueHandle);
     esp_err_t moveUp() override;
     esp_err_t moveDown() override;
     esp_err_t stop() override;
