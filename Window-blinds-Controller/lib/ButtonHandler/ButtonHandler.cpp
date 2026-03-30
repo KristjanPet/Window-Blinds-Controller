@@ -48,7 +48,7 @@ void ButtonHandler::buttonTask(void *arg){
     while(true){
         if(xQueueReceive(self->buttonQueue_, &btn, portMAX_DELAY) == pdTRUE){
             vTaskDelay(pdMS_TO_TICKS(30)); //debounce time
-
+            esp_err_t err;
             gpio_num_t pin;
             BlindsEvent cmd;
 
@@ -66,8 +66,8 @@ void ButtonHandler::buttonTask(void *arg){
             }
 
             if (gpio_get_level(pin)) {
-                esp_err_t err = self->blindsCtrl_.handleCommand(cmd);
-                if(err != ESP_OK){
+                err = xQueueSend(self->blindsCtrl_.commandsQueue_, &cmd, 0);
+                if(err != pdTRUE){
                     ESP_LOGE(TAG, "Error sending command: %s", esp_err_to_name(err));
                 }
 

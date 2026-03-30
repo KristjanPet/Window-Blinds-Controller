@@ -7,6 +7,11 @@ BlindsController::BlindsController(IMotor& motor, QueueHandle_t& commandQueue):
 
 esp_err_t BlindsController::init(){
     commandsQueue_ = xQueueCreate(10, sizeof(BlindsEvent));
+    if(commandsQueue_ == NULL){
+        ESP_LOGE(TAG, "Creating commands queue failed");
+        return ESP_FAIL;
+    }
+    return ESP_OK;
 }
 
 void BlindsController::handleCommandTask(void* arg){ //using toggle style
