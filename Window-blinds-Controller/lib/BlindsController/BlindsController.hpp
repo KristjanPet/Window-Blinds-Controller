@@ -1,6 +1,5 @@
 #pragma once
-#include <cstdint>
-#include <freertos/queue.h>
+#include <freertos/FreeRTOS.h>
 #include "IMotor.hpp"
 #include "Types.hpp"
 
@@ -16,10 +15,11 @@ class BlindsController{
 private:
     BlindsState state_ = BlindsState::IDLE;
     IMotor& motor_;
-    QueueHandle_t commandsQueue = nullptr;
+    QueueHandle_t& commandsQueue_;
 
 public:
-    BlindsController(IMotor& motor);
+    BlindsController(IMotor& motor, QueueHandle_t& commandQueue);
+    esp_err_t init();
     static void handleCommandTask(void* arg);
     BlindsState getState();
     void setState(BlindsState state);

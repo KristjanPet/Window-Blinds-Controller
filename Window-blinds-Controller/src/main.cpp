@@ -9,8 +9,9 @@ extern "C" void app_main(void) {
     MotorPins motorPins = {GPIO_NUM_26, GPIO_NUM_27, GPIO_NUM_25}; //step, dir, enable
     MotorController motor(motorPins, 100);
     motor.init();
-
-    BlindsController blinds(motor);
+    QueueHandle_t commandQueue = nullptr;
+    BlindsController blinds(motor, commandQueue);
+    blinds.init();
 
     ButtonPins buttonPins = {GPIO_NUM_33, GPIO_NUM_32}; //up, down
     ButtonHandler buttonHandler(&buttonPins, blinds);
