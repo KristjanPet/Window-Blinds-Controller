@@ -2,17 +2,8 @@
 
 static const char* TAG = "BLINDS";
 
-BlindsController::BlindsController(IMotor& motor, QueueHandle_t& commandQueue):
+BlindsController::BlindsController(IMotor& motor, BlindsCommandQueue& commandQueue):
                                  motor_(motor), commandsQueue_(commandQueue){}
-
-esp_err_t BlindsController::init(){
-    commandsQueue_ = xQueueCreate(10, sizeof(BlindsEvent));
-    if(commandsQueue_ == NULL){
-        ESP_LOGE(TAG, "Creating commands queue failed");
-        return ESP_FAIL;
-    }
-    return ESP_OK;
-}
 
 void BlindsController::handleCommandTask(void* arg){ //using toggle style
     auto* self = static_cast<BlindsController*>(arg);
@@ -20,7 +11,7 @@ void BlindsController::handleCommandTask(void* arg){ //using toggle style
     esp_err_t err;
 
     while(true){
-        if(xQueueReceive(self->commandsQueue_, &cmd, portMAX_DELAY) == pdTRUE){
+        if(self->commandsQueue_.recive(cmd) == pdTRUE){
             switch (cmd){
             case BlindsEvent::STOP:
                 err = self->motor_.stop();
@@ -81,10 +72,6 @@ void BlindsController::handleCommandTask(void* arg){ //using toggle style
             }
         }
     }
-}
-
-esp_err_t BlindsController::postEvent(BlindsEvent event){
-    return xQueueSend(commandsQueue_, &event, 0);
 }
 
 BlindsState BlindsController::getState(){
