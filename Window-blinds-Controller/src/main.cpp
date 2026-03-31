@@ -11,7 +11,7 @@ extern "C" void app_main(void) {
     commandsQueue.init();
 
     MotorPins motorPins = {GPIO_NUM_26, GPIO_NUM_27, GPIO_NUM_25}; //step, dir, enable
-    MotorController motor(motorPins, 120);
+    MotorController motor(motorPins, 120, commandsQueue);
     motor.init();
 
     BlindsController blinds(motor, commandsQueue);

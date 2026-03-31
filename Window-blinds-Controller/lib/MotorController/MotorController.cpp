@@ -2,8 +2,8 @@
 
 static const char* TAG = "Motor";
 
-MotorController::MotorController(const MotorPins& pins, const uint32_t& togglePeriodUs)
-                             : pins_(pins), togglePeriodUs_(togglePeriodUs){}
+MotorController::MotorController(const MotorPins& pins, const uint32_t& togglePeriodUs, BlindsCommandQueue& commandsQueue)
+                             : pins_(pins), togglePeriodUs_(togglePeriodUs), commandsQueue_(commandsQueue){}
 
 bool IRAM_ATTR MotorController::stepTimerCallback( gptimer_handle_t timer, const gptimer_alarm_event_data_t *edata, void *user_ctx){
     (void)timer; //not in use
@@ -27,18 +27,15 @@ bool IRAM_ATTR MotorController::stepTimerCallback( gptimer_handle_t timer, const
         }
     }
     else if (self->softLimitHit_ == false){ //limits the trigger while motor is stoping
-        // vTaskNotifyGiveFromISR(self->listenForEdgeStepTaskHandle, NULL);
         BlindsEvent cmd = BlindsEvent::LIMIT_REACHED;
-        xQueueSendFromISR(self->commandsQueueHandle_, &cmd, NULL);
+        self->commandsQueue_.sendFromISR(cmd, nullptr);
         self->softLimitHit_ = true;
     }
 
     return false;
 }
 
-esp_err_t MotorController::init(QueueHandle_t& commandsQueueHandle){
-    //commands queue init
-    commandsQueueHandle_ = commandsQueueHandle;
+esp_err_t MotorController::init(){
     //stepper motor pins init
     gpio_config_t motorIoConf = {
         .pin_bit_mask = (1ULL << pins_.step) | (1ULL << pins_.dir) | (1ULL << pins_.enable),
@@ -105,16 +102,3 @@ esp_err_t MotorController::moveUp(){
 
     return ESP_OK;
 }
-
-// void MotorController::listenForEdgeStepTask(void* arg){
-//     auto *self = static_cast<MotorController*>(arg);
-
-//     while(true){
-//         ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
-//         ESP_LOGI(TAG, "Stopped by edge step");
-//         esp_err_t err = self->stop();
-//         if (err != ESP_OK){
-//             ESP_LOGE(TAG, "Error sending stop command: %s", esp_err_to_name(err));
-//         }        
-//     }
-// }

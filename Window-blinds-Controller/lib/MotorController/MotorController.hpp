@@ -4,6 +4,7 @@
 #include <driver/gptimer.h>
 #include <esp_check.h>
 #include "IMotor.hpp"
+#include "BlindsCommandQueue.hpp"
 
 enum class MotorState{
     STOPPED,
@@ -28,7 +29,7 @@ private:
     volatile int32_t currentStep_ = 0;
     static constexpr uint32_t maxStep_ = 1000 * 63;
     volatile bool softLimitHit_ = false;
-    QueueHandle_t commandsQueueHandle_;
+    BlindsCommandQueue& commandsQueue_;
 
     static bool IRAM_ATTR stepTimerCallback(
         gptimer_handle_t timer,
@@ -37,8 +38,8 @@ private:
 public:
     TaskHandle_t listenForEdgeStepTaskHandle = nullptr;
 
-    MotorController(const MotorPins& pins, const uint32_t& togglePeriodUs);
-    esp_err_t init(QueueHandle_t& commandsQueueHandle);
+    MotorController(const MotorPins& pins, const uint32_t& togglePeriodUs, BlindsCommandQueue& commandsQueue);
+    esp_err_t init();
     esp_err_t moveUp() override;
     esp_err_t moveDown() override;
     esp_err_t stop() override;
