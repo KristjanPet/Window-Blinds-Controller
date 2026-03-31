@@ -11,14 +11,14 @@ esp_err_t BlindsCommandQueue::init(){
     return ESP_OK;
 }
 
-BaseType_t BlindsCommandQueue::send(BlindsEvent e, TickType_t wait = 0){
+BaseType_t BlindsCommandQueue::send(BlindsEvent e, TickType_t wait){
     return xQueueSend(queue_, &e, wait);
 }
 
-BaseType_t BlindsCommandQueue::sendFromISR(BlindsEvent e, BaseType_t* hpTaskWoken = nullptr){
+BaseType_t BlindsCommandQueue::sendFromISR(BlindsEvent e, BaseType_t* hpTaskWoken){
     return xQueueSendFromISR(queue_, &e, hpTaskWoken);
 }
 
-BaseType_t BlindsCommandQueue::recive(BlindsEvent& e, TickType_t wait = portMAX_DELAY){
+BaseType_t BlindsCommandQueue::recive(BlindsEvent& e, TickType_t wait){
     return xQueueReceive(queue_, &e, wait);
 }

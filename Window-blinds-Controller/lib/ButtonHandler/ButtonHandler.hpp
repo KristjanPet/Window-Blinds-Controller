@@ -3,7 +3,7 @@
 #include <driver/gpio.h>
 #include <esp_check.h>
 #include <portmacro.h>
-#include "BlindsController.hpp"
+#include "BlindsCommandQueue.hpp"
 
 class ButtonHandler;
 
@@ -30,11 +30,11 @@ private:
     QueueHandle_t buttonQueue_ = nullptr;
     ButtonIsrContext upCtx_;
     ButtonIsrContext downCtx_;
-    BlindsController& blindsCtrl_;
+    BlindsCommandQueue& commandQueue_;
 
     static void IRAM_ATTR buttonIsr(void *arg);
 public:
-    ButtonHandler(ButtonPins* pins, BlindsController& blindsCtrl);
+    ButtonHandler(ButtonPins* pins, BlindsCommandQueue& commandQueue);
     esp_err_t init();
     static void buttonTask(void *arg);
 };

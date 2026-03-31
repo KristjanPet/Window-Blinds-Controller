@@ -1,6 +1,7 @@
 #include <freertos/FreeRTOS.h>
 #include "MotorController.hpp"
 #include "ButtonHandler.hpp"
+#include "BlindsController.hpp"
 #include "BlindsCommandQueue.hpp"
 
 static const char *TAG_MAIN = "MAIN";
@@ -17,7 +18,7 @@ extern "C" void app_main(void) {
     BlindsController blinds(motor, commandsQueue);
 
     ButtonPins buttonPins = {GPIO_NUM_33, GPIO_NUM_32}; //up, down
-    ButtonHandler buttonHandler(&buttonPins, blinds);
+    ButtonHandler buttonHandler(&buttonPins, commandsQueue);
     buttonHandler.init();
 
     if(xTaskCreate(ButtonHandler::buttonTask, "Button", 2048, &buttonHandler, 3, NULL) == pdPASS){}
