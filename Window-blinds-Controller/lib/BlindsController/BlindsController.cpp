@@ -9,7 +9,6 @@ void BlindsController::handleCommandTask(void* arg){ //using toggle style
     auto* self = static_cast<BlindsController*>(arg);
     BlindsEvent cmd;
 
-
     while(true){
         if(self->commandsQueue_.recive(cmd) == pdTRUE){
             self->handleCommand(cmd);
@@ -59,6 +58,7 @@ esp_err_t BlindsController::handleCommand(BlindsEvent cmd){
         }
         else{
             ESP_LOGE(TAG, "Blinds state is FAULT");
+            err = ESP_ERR_INVALID_STATE;
         }
         break;
     case BlindsEvent::DOWN:
@@ -75,6 +75,7 @@ esp_err_t BlindsController::handleCommand(BlindsEvent cmd){
         } 
         else{
             ESP_LOGE(TAG, "Blinds state is FAULT");
+            err = ESP_ERR_INVALID_STATE;
         }
         break;
     default:
