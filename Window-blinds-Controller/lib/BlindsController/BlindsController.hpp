@@ -21,7 +21,7 @@ private:
 public:
     BlindsController(IMotor& motor, BlindsCommandQueue& commandQueue);
     static void handleCommandTask(void* arg);
-    esp_err_t postEvent(BlindsEvent event);
+    esp_err_t handleCommand(BlindsEvent cmd);
     BlindsState getState();
     void setState(BlindsState state);
 };
