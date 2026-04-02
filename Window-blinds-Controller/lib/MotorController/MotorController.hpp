@@ -1,8 +1,11 @@
 #pragma once
+#include <esp_task.h>
 #include <driver/gpio.h>
 #include <driver/gptimer.h>
 #include <esp_check.h>
 #include "IMotor.hpp"
+#include "BlindsCommandQueue.hpp"
+#include "AppConfig.hpp"
 
 enum class MotorState{
     STOPPED,
@@ -10,29 +13,27 @@ enum class MotorState{
     DOWN
 };
 
-struct MotorPins{
-    gpio_num_t step;
-    gpio_num_t dir;
-    gpio_num_t enable;
-};
-
 class MotorController : public IMotor{
     
 private:
     MotorPins pins_;
-    gptimer_handle_t timer_ = nullptr;
-    volatile bool stepLevel_ = false;
     uint32_t togglePeriodUs_;
-    MotorState motorState_ = MotorState::STOPPED; //TODO maybe not needed
+    gptimer_handle_t timer_ = nullptr;
+
+    volatile bool stepLevel_ = false;
+    MotorState motorState_ = MotorState::STOPPED;
     int32_t currentStep_ = 0;
-    static const uint32_t maxStep_ = 1000;
+    volatile bool softLimitHit_ = false;
+
+    BlindsCommandQueue& commandsQueue_;
+    portMUX_TYPE motorStepMux_ = portMUX_INITIALIZER_UNLOCKED;
 
     static bool IRAM_ATTR stepTimerCallback(
         gptimer_handle_t timer,
         const gptimer_alarm_event_data_t *edata,
         void *user_ctx);
 public:
-    MotorController(const MotorPins& pins, const uint32_t& togglePeriodUs);
+    MotorController(const MotorPins& pins, const uint32_t& togglePeriodUs, BlindsCommandQueue& commandsQueue);
     esp_err_t init();
     esp_err_t moveUp() override;
     esp_err_t moveDown() override;

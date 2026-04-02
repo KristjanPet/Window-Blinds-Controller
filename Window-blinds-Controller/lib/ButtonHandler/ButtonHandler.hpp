@@ -3,19 +3,15 @@
 #include <driver/gpio.h>
 #include <esp_check.h>
 #include <portmacro.h>
-#include "BlindsController.hpp"
+#include "BlindsCommandQueue.hpp"
+#include "AppConfig.hpp"
+
+class ButtonHandler;
 
 enum class ButtonPressed : uint8_t{
     UP,
     DOWN
 };
-
-struct ButtonPins{
-    gpio_num_t up;
-    gpio_num_t down;
-};
-
-class ButtonHandler;
 
 struct ButtonIsrContext{
     ButtonHandler* self;
@@ -26,15 +22,14 @@ class ButtonHandler{
 
 private:
     ButtonPins pins_;
-    uint8_t debounceTime_;// TODO implement in constructor
     QueueHandle_t buttonQueue_ = nullptr;
     ButtonIsrContext upCtx_;
     ButtonIsrContext downCtx_;
-    BlindsController& blindsCtrl_;
+    BlindsCommandQueue& commandQueue_;
 
     static void IRAM_ATTR buttonIsr(void *arg);
 public:
-    ButtonHandler(ButtonPins* pins, BlindsController& blindsCtrl);
+    ButtonHandler(const ButtonPins& pins, BlindsCommandQueue& commandQueue);
     esp_err_t init();
     static void buttonTask(void *arg);
 };

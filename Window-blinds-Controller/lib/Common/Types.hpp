@@ -1,6 +1,20 @@
 #pragma once
-enum class MoveCommand{
+#include <driver/gpio.h>
+
+enum class BlindsEvent{
     UP,
     DOWN,
-    STOP
+    STOP,
+    LIMIT_REACHED
+};
+
+struct MotorPins{
+    gpio_num_t step;
+    gpio_num_t dir;
+    gpio_num_t enable;
+};
+
+struct ButtonPins{
+    gpio_num_t up;
+    gpio_num_t down;
 };

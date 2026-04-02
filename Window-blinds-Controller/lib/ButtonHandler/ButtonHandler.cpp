@@ -2,8 +2,8 @@
 
 static const char* TAG = "BUTTON";
 
-ButtonHandler::ButtonHandler(ButtonPins* pins, BlindsController& blindsCtrl)
-             : pins_(*pins), blindsCtrl_(blindsCtrl){}
+ButtonHandler::ButtonHandler(const ButtonPins& pins, BlindsCommandQueue& commandQueue)
+             : pins_(pins), commandQueue_(commandQueue){}
 
 void IRAM_ATTR ButtonHandler::buttonIsr(void *arg){
     ButtonIsrContext *ctx = static_cast<ButtonIsrContext*>(arg);
@@ -26,17 +26,21 @@ esp_err_t ButtonHandler::init(){
         .pull_down_en = GPIO_PULLDOWN_ENABLE,
         .intr_type = GPIO_INTR_POSEDGE
     };
-    gpio_config(&buttIoConf);
+    ESP_RETURN_ON_ERROR(gpio_config(&buttIoConf), TAG, "Failed to config button gpio");
 
-    buttonQueue_ = xQueueCreate(10, sizeof(ButtonPressed));
+    buttonQueue_ = xQueueCreate(AppConfig::buttonsQueueDepth, sizeof(ButtonPressed));
+    if(buttonQueue_ == NULL){
+        ESP_LOGE(TAG, "Creating button queue failed");
+        return ESP_FAIL;
+    }
 
     upCtx_ = {this, ButtonPressed::UP};
     downCtx_ = {this, ButtonPressed::DOWN};
 
-    gpio_install_isr_service(0); //TODO handle error
+    ESP_RETURN_ON_ERROR(gpio_install_isr_service(0), TAG, "Failed to install ISR service");
 
-    gpio_isr_handler_add(pins_.down, buttonIsr, &downCtx_);
-    gpio_isr_handler_add(pins_.up, buttonIsr, &upCtx_);
+    ESP_RETURN_ON_ERROR(gpio_isr_handler_add(pins_.down, buttonIsr, &downCtx_), TAG, "Failed to add DOWN handler to ISR");
+    ESP_RETURN_ON_ERROR(gpio_isr_handler_add(pins_.up, buttonIsr, &upCtx_), TAG, "Failed to add UP handler to ISR");
 
     return ESP_OK;
 }
@@ -47,28 +51,26 @@ void ButtonHandler::buttonTask(void *arg){
 
     while(true){
         if(xQueueReceive(self->buttonQueue_, &btn, portMAX_DELAY) == pdTRUE){
-            vTaskDelay(pdMS_TO_TICKS(30)); //debounce time
-
+            vTaskDelay(pdMS_TO_TICKS(AppConfig::debouncTime)); //debounce time
             gpio_num_t pin;
-            MoveCommand cmd;
+            BlindsEvent cmd;
 
             switch (btn){
                 case ButtonPressed::UP:
                     pin = self->pins_.up;
-                    cmd = MoveCommand::UP;
+                    cmd = BlindsEvent::UP;
                     break;
                 case ButtonPressed::DOWN:
                     pin = self->pins_.down;
-                    cmd = MoveCommand::DOWN;
+                    cmd = BlindsEvent::DOWN;
                     break;
                 default:
                     continue;
             }
 
             if (gpio_get_level(pin)) {
-                esp_err_t err = self->blindsCtrl_.handleCommand(cmd);
-                if(err != ESP_OK){
-                    ESP_LOGE(TAG, "Error sending command: %s", esp_err_to_name(err));
+                if(self->commandQueue_.send(cmd, 0) != pdTRUE){
+                    ESP_LOGE(TAG, "Error sending button command");
                 }
 
                 while (gpio_get_level(pin)) { //TODO remove after implementing schmit trigger

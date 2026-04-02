@@ -1,6 +1,7 @@
 #pragma once
-#include <cstdint>
+#include <freertos/FreeRTOS.h>
 #include "IMotor.hpp"
+#include "BlindsCommandQueue.hpp"
 #include "Types.hpp"
 
 enum class BlindsState{
@@ -15,10 +16,12 @@ class BlindsController{
 private:
     BlindsState state_ = BlindsState::IDLE;
     IMotor& motor_;
-
+    BlindsCommandQueue& commandsQueue_;
+    
 public:
-    BlindsController(IMotor& motor);
-    esp_err_t handleCommand(MoveCommand cmd);
-    BlindsState getState();
+    BlindsController(IMotor& motor, BlindsCommandQueue& commandQueue);
+    static void handleCommandTask(void* arg);
+    esp_err_t handleCommand(BlindsEvent cmd);
+    BlindsState getState() const;
     void setState(BlindsState state);
 };

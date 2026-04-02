@@ -1,5 +1,6 @@
 #pragma once
 #include <esp_check.h>
+#include "Types.hpp"
 
 class IMotor{
 public:
