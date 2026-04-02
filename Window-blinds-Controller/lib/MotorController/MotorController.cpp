@@ -14,25 +14,36 @@ bool IRAM_ATTR MotorController::stepTimerCallback( gptimer_handle_t timer, const
         return false;
     }
 
+    bool notifyLimit = false;
+    BaseType_t hpTaskWoken = false;
+
+    taskENTER_CRITICAL_ISR(&self->motorStepMux_);
     if((self->currentStep_ > 0 && self->motorState_ == MotorState::DOWN) ||
         (self->currentStep_ < maxStep_ && self->motorState_ == MotorState::UP)){
         self->stepLevel_ = !self->stepLevel_;
         gpio_set_level(self->pins_.step, self->stepLevel_);
 
-        if(self->motorState_ == MotorState::DOWN && self->stepLevel_){
-            self->currentStep_--;
-        }
-        else if(self->motorState_ == MotorState::UP && self->stepLevel_){
-            self->currentStep_++;
+        if(self->stepLevel_){
+            if(self->motorState_ == MotorState::DOWN){
+                self->currentStep_--;
+            }
+            else if(self->motorState_ == MotorState::UP){
+                self->currentStep_++;
+            }
         }
     }
-    else if (self->softLimitHit_ == false){ //limits the trigger while motor is stoping
-        BlindsEvent cmd = BlindsEvent::LIMIT_REACHED;
-        self->commandsQueue_.sendFromISR(cmd, nullptr);
+    else if (self->softLimitHit_ == false && self->motorState_ != MotorState::STOPPED){ //limits the trigger while motor is stoping
         self->softLimitHit_ = true;
+        notifyLimit = true;
+    }
+    taskEXIT_CRITICAL_ISR(&self->motorStepMux_);
+
+    if(notifyLimit){
+        BlindsEvent cmd = BlindsEvent::LIMIT_REACHED;
+        self->commandsQueue_.sendFromISR(cmd, &hpTaskWoken);
     }
 
-    return false;
+    return hpTaskWoken;
 }
 
 esp_err_t MotorController::init(){
@@ -77,27 +88,53 @@ esp_err_t MotorController::init(){
 
 esp_err_t MotorController::stop(){
     ESP_RETURN_ON_ERROR(gptimer_stop(timer_), TAG, "Failed to stop gptimer");
-    ESP_RETURN_ON_ERROR(gpio_set_level(pins_.step, 0), TAG, "Failed seting step pin");
+
+    int32_t getStep = 0;
+    esp_err_t stepRet = ESP_OK;
+
+    taskENTER_CRITICAL(&motorStepMux_);
     motorState_ = MotorState::STOPPED;
     stepLevel_ = false;
     softLimitHit_ = false;
-    ESP_LOGI(TAG, "STOP, step: %d", currentStep_);
+    stepRet = gpio_set_level(pins_.step, 0);
+    getStep = currentStep_;
+    taskEXIT_CRITICAL(&motorStepMux_);
+
+    ESP_RETURN_ON_ERROR(stepRet, TAG, "Failed seting step pin");
+    ESP_LOGI(TAG, "STOP, step: %d", getStep);
 
     return ESP_OK;
 }
 
 esp_err_t MotorController::moveDown(){
-    ESP_RETURN_ON_ERROR(gpio_set_level(pins_.dir, 0), TAG, "Failed seting dir pin");
+    esp_err_t dirRet = ESP_OK;
+
+    taskENTER_CRITICAL(&motorStepMux_);
+    dirRet = gpio_set_level(pins_.dir, 0);
+    if(dirRet == ESP_OK){
+        motorState_ = MotorState::DOWN;
+    }
+    taskEXIT_CRITICAL(&motorStepMux_);
+
+    ESP_RETURN_ON_ERROR(dirRet, TAG, "Failed seting dir pin");
     ESP_RETURN_ON_ERROR(gptimer_start(timer_), TAG, "Failed starting gptimer");
-    motorState_ = MotorState::DOWN;
     ESP_LOGI(TAG, " DOWN");
+
     return ESP_OK;
 }
 
 esp_err_t MotorController::moveUp(){
-    ESP_RETURN_ON_ERROR(gpio_set_level(pins_.dir, 1), TAG, "Failed seting dir pin");
+    esp_err_t dirRet = ESP_OK;
+
+    taskENTER_CRITICAL(&motorStepMux_);
+    dirRet = gpio_set_level(pins_.dir, 1);
+    if(dirRet == ESP_OK){
+        motorState_ = MotorState::UP;
+    }
+    taskEXIT_CRITICAL(&motorStepMux_);
+
+    ESP_RETURN_ON_ERROR(dirRet, TAG, "Failed seting dir pin");
     ESP_RETURN_ON_ERROR(gptimer_start(timer_), TAG, "Failed starting gptimer");
-    motorState_ = MotorState::UP;
     ESP_LOGI(TAG, " UP");
 
     return ESP_OK;
