@@ -52,7 +52,6 @@ void ButtonHandler::buttonTask(void *arg){
     while(true){
         if(xQueueReceive(self->buttonQueue_, &btn, portMAX_DELAY) == pdTRUE){
             vTaskDelay(pdMS_TO_TICKS(30)); //debounce time
-            esp_err_t err;
             gpio_num_t pin;
             BlindsEvent cmd;
 
@@ -70,9 +69,8 @@ void ButtonHandler::buttonTask(void *arg){
             }
 
             if (gpio_get_level(pin)) {
-                err = self->commandQueue_.send(cmd, 0);
-                if(err != pdTRUE){
-                    ESP_LOGE(TAG, "Error sending command: %s", esp_err_to_name(err));
+                if(self->commandQueue_.send(cmd, 0) != pdTRUE){
+                    ESP_LOGE(TAG, "Error sending button command");
                 }
 
                 while (gpio_get_level(pin)) { //TODO remove after implementing schmit trigger
