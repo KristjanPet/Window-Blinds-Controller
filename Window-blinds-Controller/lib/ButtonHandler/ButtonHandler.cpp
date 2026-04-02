@@ -26,17 +26,17 @@ esp_err_t ButtonHandler::init(){
         .pull_down_en = GPIO_PULLDOWN_ENABLE,
         .intr_type = GPIO_INTR_POSEDGE
     };
-    gpio_config(&buttIoConf);
+    ESP_RETURN_ON_ERROR(gpio_config(&buttIoConf), TAG, "Failed to config button gpio");
 
     buttonQueue_ = xQueueCreate(10, sizeof(ButtonPressed));
 
     upCtx_ = {this, ButtonPressed::UP};
     downCtx_ = {this, ButtonPressed::DOWN};
 
-    gpio_install_isr_service(0); //TODO handle error
+    ESP_RETURN_ON_ERROR(gpio_install_isr_service(0), TAG, "Failed to install ISR service");
 
-    gpio_isr_handler_add(pins_.down, buttonIsr, &downCtx_);
-    gpio_isr_handler_add(pins_.up, buttonIsr, &upCtx_);
+    ESP_RETURN_ON_ERROR(gpio_isr_handler_add(pins_.down, buttonIsr, &downCtx_), TAG, "Failed to add DOWN handler to ISR");
+    ESP_RETURN_ON_ERROR(gpio_isr_handler_add(pins_.up, buttonIsr, &upCtx_), TAG, "Failed to add UP handler to ISR");
 
     return ESP_OK;
 }

@@ -29,7 +29,7 @@ private:
     MotorState motorState_ = MotorState::STOPPED;
     int32_t currentStep_ = 0;
     static constexpr uint32_t maxStep_ = 1000 * 63;
-    volatile bool softLimitHit_ = false; //TODO vn dej
+    volatile bool softLimitHit_ = false;
 
     BlindsCommandQueue& commandsQueue_;
     portMUX_TYPE motorStepMux_ = portMUX_INITIALIZER_UNLOCKED;
