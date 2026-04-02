@@ -86,7 +86,7 @@ esp_err_t BlindsController::handleCommand(BlindsEvent cmd){
     return err;
 }
 
-BlindsState BlindsController::getState(){
+BlindsState BlindsController::getState() const{
     return state_;
 }
 

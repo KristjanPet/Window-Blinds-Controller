@@ -28,7 +28,7 @@ esp_err_t ButtonHandler::init(){
     };
     ESP_RETURN_ON_ERROR(gpio_config(&buttIoConf), TAG, "Failed to config button gpio");
 
-    buttonQueue_ = xQueueCreate(10, sizeof(ButtonPressed));
+    buttonQueue_ = xQueueCreate(AppConfig::buttonsQueueDepth, sizeof(ButtonPressed));
     if(buttonQueue_ == NULL){
         ESP_LOGE(TAG, "Creating button queue failed");
         return ESP_FAIL;
@@ -51,7 +51,7 @@ void ButtonHandler::buttonTask(void *arg){
 
     while(true){
         if(xQueueReceive(self->buttonQueue_, &btn, portMAX_DELAY) == pdTRUE){
-            vTaskDelay(pdMS_TO_TICKS(30)); //debounce time
+            vTaskDelay(pdMS_TO_TICKS(AppConfig::debouncTime)); //debounce time
             gpio_num_t pin;
             BlindsEvent cmd;
 

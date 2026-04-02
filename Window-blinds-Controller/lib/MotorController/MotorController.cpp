@@ -19,7 +19,7 @@ bool IRAM_ATTR MotorController::stepTimerCallback( gptimer_handle_t timer, const
 
     taskENTER_CRITICAL_ISR(&self->motorStepMux_);
     if((self->currentStep_ > 0 && self->motorState_ == MotorState::DOWN) ||
-        (self->currentStep_ < maxStep_ && self->motorState_ == MotorState::UP)){
+        (self->currentStep_ < AppConfig::maxStep && self->motorState_ == MotorState::UP)){
         self->stepLevel_ = !self->stepLevel_;
         gpio_set_level(self->pins_.step, self->stepLevel_);
 

@@ -5,17 +5,12 @@
 #include <esp_check.h>
 #include "IMotor.hpp"
 #include "BlindsCommandQueue.hpp"
+#include "AppConfig.hpp"
 
 enum class MotorState{
     STOPPED,
     UP,
     DOWN
-};
-
-struct MotorPins{
-    gpio_num_t step;
-    gpio_num_t dir;
-    gpio_num_t enable;
 };
 
 class MotorController : public IMotor{
@@ -28,7 +23,6 @@ private:
     volatile bool stepLevel_ = false;
     MotorState motorState_ = MotorState::STOPPED;
     int32_t currentStep_ = 0;
-    static constexpr uint32_t maxStep_ = 1000 * 63;
     volatile bool softLimitHit_ = false;
 
     BlindsCommandQueue& commandsQueue_;

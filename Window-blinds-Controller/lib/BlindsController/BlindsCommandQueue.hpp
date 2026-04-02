@@ -2,6 +2,7 @@
 #include <freertos/FreeRTOS.h>
 #include <esp_check.h>
 #include "Types.hpp"
+#include "AppConfig.hpp"
 
 class BlindsCommandQueue{
 

@@ -4,17 +4,13 @@
 #include <esp_check.h>
 #include <portmacro.h>
 #include "BlindsCommandQueue.hpp"
+#include "AppConfig.hpp"
 
 class ButtonHandler;
 
 enum class ButtonPressed : uint8_t{
     UP,
     DOWN
-};
-
-struct ButtonPins{
-    gpio_num_t up;
-    gpio_num_t down;
 };
 
 struct ButtonIsrContext{

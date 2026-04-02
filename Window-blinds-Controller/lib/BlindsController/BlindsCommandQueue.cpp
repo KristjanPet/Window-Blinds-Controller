@@ -3,7 +3,7 @@
 static const char* TAG = "Command Queue";
 
 esp_err_t BlindsCommandQueue::init(){
-    queue_ = xQueueCreate(10, sizeof(BlindsEvent));
+    queue_ = xQueueCreate(AppConfig::commandsQueueDepth, sizeof(BlindsEvent));
     if(queue_ == NULL){
         ESP_LOGE(TAG, "Creating commands queue failed");
         return ESP_FAIL;

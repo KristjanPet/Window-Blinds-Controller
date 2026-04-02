@@ -3,6 +3,7 @@
 #include "ButtonHandler.hpp"
 #include "BlindsController.hpp"
 #include "BlindsCommandQueue.hpp"
+#include "AppConfig.hpp"
 
 static const char *TAG_MAIN = "MAIN";
 
@@ -13,16 +14,14 @@ extern "C" void app_main(void) {
         esp_restart();
     };
 
-    MotorPins motorPins = {GPIO_NUM_26, GPIO_NUM_27, GPIO_NUM_25}; //step, dir, enable
-    MotorController motor(motorPins, 120, commandsQueue);
+    MotorController motor(AppConfig::motorPins, AppConfig::togglePeriodUs, commandsQueue);
     if(motor.init() != ESP_OK){
         esp_restart();
     };
 
     BlindsController blinds(motor, commandsQueue);
 
-    ButtonPins buttonPins = {GPIO_NUM_33, GPIO_NUM_32}; //up, down
-    ButtonHandler buttonHandler(&buttonPins, commandsQueue);
+    ButtonHandler buttonHandler(AppConfig::buttonPins, commandsQueue);
     if(buttonHandler.init() != ESP_OK){
         esp_restart();
     };
