@@ -29,6 +29,10 @@ esp_err_t ButtonHandler::init(){
     ESP_RETURN_ON_ERROR(gpio_config(&buttIoConf), TAG, "Failed to config button gpio");
 
     buttonQueue_ = xQueueCreate(10, sizeof(ButtonPressed));
+    if(buttonQueue_ == NULL){
+        ESP_LOGE(TAG, "Creating button queue failed");
+        return ESP_FAIL;
+    }
 
     upCtx_ = {this, ButtonPressed::UP};
     downCtx_ = {this, ButtonPressed::DOWN};
