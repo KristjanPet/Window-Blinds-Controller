@@ -10,7 +10,7 @@ void BlindsController::handleCommandTask(void* arg){ //using toggle style
     BlindsEvent cmd;
 
     while(true){
-        if(self->commandsQueue_.recive(cmd) == pdTRUE){
+        if(self->commandsQueue_.receive(cmd) == pdTRUE){
             self->handleCommand(cmd);
         }
     }

@@ -19,6 +19,6 @@ BaseType_t BlindsCommandQueue::sendFromISR(BlindsEvent e, BaseType_t* hpTaskWoke
     return xQueueSendFromISR(queue_, &e, hpTaskWoken);
 }
 
-BaseType_t BlindsCommandQueue::recive(BlindsEvent& e, TickType_t wait){
+BaseType_t BlindsCommandQueue::receive(BlindsEvent& e, TickType_t wait){
     return xQueueReceive(queue_, &e, wait);
 }

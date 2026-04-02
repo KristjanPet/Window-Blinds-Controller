@@ -26,7 +26,6 @@ class ButtonHandler{
 
 private:
     ButtonPins pins_;
-    uint8_t debounceTime_;// TODO implement in constructor
     QueueHandle_t buttonQueue_ = nullptr;
     ButtonIsrContext upCtx_;
     ButtonIsrContext downCtx_;
@@ -34,7 +33,7 @@ private:
 
     static void IRAM_ATTR buttonIsr(void *arg);
 public:
-    ButtonHandler(ButtonPins* pins, BlindsCommandQueue& commandQueue);
+    ButtonHandler(const ButtonPins& pins, BlindsCommandQueue& commandQueue);
     esp_err_t init();
     static void buttonTask(void *arg);
 };

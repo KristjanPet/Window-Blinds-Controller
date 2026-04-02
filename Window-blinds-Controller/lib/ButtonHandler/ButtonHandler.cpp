@@ -2,8 +2,8 @@
 
 static const char* TAG = "BUTTON";
 
-ButtonHandler::ButtonHandler(ButtonPins* pins, BlindsCommandQueue& commandQueue)
-             : pins_(*pins), commandQueue_(commandQueue){}
+ButtonHandler::ButtonHandler(const ButtonPins& pins, BlindsCommandQueue& commandQueue)
+             : pins_(pins), commandQueue_(commandQueue){}
 
 void IRAM_ATTR ButtonHandler::buttonIsr(void *arg){
     ButtonIsrContext *ctx = static_cast<ButtonIsrContext*>(arg);
