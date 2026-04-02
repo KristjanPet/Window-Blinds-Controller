@@ -3,6 +3,7 @@
 #include "ButtonHandler.hpp"
 #include "BlindsController.hpp"
 #include "BlindsCommandQueue.hpp"
+#include "Tmc2209Driver.hpp"
 #include "AppConfig.hpp"
 
 static const char *TAG_MAIN = "MAIN";
@@ -18,6 +19,8 @@ extern "C" void app_main(void) {
     if(motor.init() != ESP_OK){
         esp_restart();
     };
+
+    Tmc2209Driver motorDriver(AppConfig::UARTDriverPin);
 
     BlindsController blinds(motor, commandsQueue);
 

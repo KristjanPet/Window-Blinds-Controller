@@ -21,7 +21,7 @@ struct ButtonIsrContext{
 class ButtonHandler{
 
 private:
-    ButtonPins pins_;
+    const ButtonPins pins_;
     QueueHandle_t buttonQueue_ = nullptr;
     ButtonIsrContext upCtx_;
     ButtonIsrContext downCtx_;
