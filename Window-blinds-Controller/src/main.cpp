@@ -21,6 +21,7 @@ extern "C" void app_main(void) {
     };
 
     Tmc2209Driver motorDriver(AppConfig::UARTDriverPin);
+    motorDriver.init();
 
     BlindsController blinds(motor, commandsQueue);
 
@@ -40,6 +41,7 @@ extern "C" void app_main(void) {
 
     vTaskDelay(pdMS_TO_TICKS(1000));
     ESP_LOGI(TAG_MAIN, "Init complete, running program....");
+    motorDriver.uartSelfTest();
 
     while (true){
         vTaskDelay(pdMS_TO_TICKS(100));

@@ -12,7 +12,7 @@ namespace AppConfig{
     constexpr uint32_t maxStep = 1000 * 63; //max num of steps
 
     //motor driver settings
-    constexpr TMCUARTDriverPins UARTDriverPin = {GPIO_NUM_17, GPIO_NUM_16};
+    constexpr TMCUARTDriverPins UARTDriverPin = {GPIO_NUM_17, GPIO_NUM_16}; //TX, RX
 
     //buttons settings
     constexpr ButtonPins buttonPins = {GPIO_NUM_33, GPIO_NUM_32}; //up, down
