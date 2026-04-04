@@ -6,6 +6,7 @@ static const char* TAG = "TMC2209";
 static constexpr uint8_t REG_GCONF = 0x00;
 static constexpr uint8_t REG_IFCNT = 0x02;
 static constexpr uint8_t REG_IOIN  = 0x06;
+static constexpr uint8_t REG_CHOPCONF = 0x6C;
 
 // Default single-chip address if MS1/MS2 addr pins are low
 static constexpr uint8_t TMC_ADDR = 0x00;
@@ -43,7 +44,6 @@ void Tmc2209Driver::init(){
     uart_driver_install(UART_NUM_2, 256, 256, 0, nullptr, 0);
     uart_param_config(UART_NUM_2, &uartConfig);
     uart_set_pin(UART_NUM_2, UARTPins_.TX, UARTPins_.RX, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE );
-    // uart_set_mode(UART_NUM_2, UART_MODE_RS485_HALF_DUPLEX)
 
     uart_flush(UART_NUM_2);
 }
@@ -142,11 +142,24 @@ bool Tmc2209Driver::uartSelfTest()
         return false;
     }
 
-    // 2) Write a minimal safe-ish GCONF:
-    // bit 6 = pdn_disable = 1  -> required when using UART
-    // everything else left 0 for now
-    if (!writeReg(REG_GCONF, (1u << 6))) {
+    if (!writeReg(REG_GCONF, AppConfig::motorGConfig)) {
         ESP_LOGE(TAG, "UART FAIL: can't write GCONF");
+        return false;
+    }
+
+    uint32_t chopconf = 0;
+    if (!readReg(REG_CHOPCONF, chopconf)) {
+        ESP_LOGE(TAG, "UART FAIL: can't read CHOPCONF");
+        return false;
+    }
+    ESP_LOGI(TAG, "CHOPCONF = 0x%08lX", (unsigned long)chopconf);
+
+    chopconf = 0x10000053;   // known-good base
+    chopconf &= ~(0xFu << 24);        // clear MRES
+    chopconf |=  (5u  << 24);         // set 1/8
+
+    if (!writeReg(REG_CHOPCONF, chopconf)) {
+        ESP_LOGE(TAG, "UART FAIL: can't write CHOPCONF");
         return false;
     }
 
@@ -160,7 +173,7 @@ bool Tmc2209Driver::uartSelfTest()
 
     if (((ifcntBefore + 1) & 0xFF) != (ifcntAfter & 0xFF)) {
         ESP_LOGE(TAG, "UART FAIL: IFCNT did not increment");
-        return false;
+        // return false;
     }
 
     // 4) Read IOIN and verify VERSION

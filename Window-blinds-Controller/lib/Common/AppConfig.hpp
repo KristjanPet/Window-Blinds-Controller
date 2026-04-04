@@ -13,6 +13,8 @@ namespace AppConfig{
 
     //motor driver settings
     constexpr TMCUARTDriverPins UARTDriverPin = {GPIO_NUM_17, GPIO_NUM_16}; //TX, RX
+    constexpr uint32_t motorGConfig = (1u << 6 | 1u << 7); //global configs, 6 - UART control, 7 - controll microsteps
+    constexpr uint32_t chopConfig = (8u << 24);
 
     //buttons settings
     constexpr ButtonPins buttonPins = {GPIO_NUM_33, GPIO_NUM_32}; //up, down
