@@ -1,18 +1,18 @@
 #pragma once
-#include <driver/uart.h>
-#include <esp_log.h>
-#include <cstring>
-#include "AppConfig.hpp"
+#include <cstdint>
+#include <esp_err.h>
+#include "Types.hpp"
 
 class Tmc2209Driver{
 private:
     const TMCUARTDriverPins UARTPins_;
+    bool initialized_ = false;
     
 public:
     Tmc2209Driver(const TMCUARTDriverPins& UARTPins);
-    void init();
+    esp_err_t init();
 
-    bool writeReg(uint8_t reg, uint32_t value);
-    bool readReg(uint8_t reg, uint32_t& value);
-    bool uartSelfTest();
+    esp_err_t writeReg(uint8_t reg, uint32_t value);
+    esp_err_t readReg(uint8_t reg, uint32_t& value);
+    esp_err_t configureAndVerify();
 };

@@ -1,3 +1,5 @@
+#include <esp_log.h>
+#include <esp_system.h>
 #include <freertos/FreeRTOS.h>
 #include "MotorController.hpp"
 #include "ButtonHandler.hpp"
@@ -15,13 +17,22 @@ extern "C" void app_main(void) {
         esp_restart();
     };
 
+    Tmc2209Driver motorDriver(AppConfig::UARTDriverPin);
+    esp_err_t err = motorDriver.init();
+    if(err != ESP_OK){
+        ESP_LOGE(TAG_MAIN, "TMC2209 init failed: %s", esp_err_to_name(err));
+        esp_restart();
+    };
+    err = motorDriver.configureAndVerify();
+    if(err != ESP_OK){
+        ESP_LOGE(TAG_MAIN, "TMC2209 config failed: %s", esp_err_to_name(err));
+        esp_restart();
+    };
+
     MotorController motor(AppConfig::motorPins, AppConfig::togglePeriodUs, commandsQueue);
     if(motor.init() != ESP_OK){
         esp_restart();
     };
-
-    Tmc2209Driver motorDriver(AppConfig::UARTDriverPin);
-    motorDriver.init();
 
     BlindsController blinds(motor, commandsQueue);
 
@@ -41,7 +52,6 @@ extern "C" void app_main(void) {
 
     vTaskDelay(pdMS_TO_TICKS(1000));
     ESP_LOGI(TAG_MAIN, "Init complete, running program....");
-    motorDriver.uartSelfTest();
 
     while (true){
         vTaskDelay(pdMS_TO_TICKS(100));
