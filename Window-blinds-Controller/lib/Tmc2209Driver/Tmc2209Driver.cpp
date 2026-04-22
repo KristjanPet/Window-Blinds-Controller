@@ -1,11 +1,12 @@
 #include "Tmc2209Driver.hpp"
 
 #include <cstring>
+#include <driver/gpio.h>
 #include <driver/uart.h>
 #include <esp_check.h>
 #include <esp_log.h>
 #include <freertos/FreeRTOS.h>
-#include <freertos/task.h>
+#include <portmacro.h>
 
 #include "AppConfig.hpp"
 #include "Tmc2209Constants.hpp"
@@ -13,7 +14,24 @@
 static const char* TAG = "TMC2209";
 using namespace Tmc2209Constants;
 
-Tmc2209Driver::Tmc2209Driver(const TMCUARTDriverPins& UARTPins): UARTPins_(UARTPins){}
+Tmc2209Driver::Tmc2209Driver(const TMCUARTDriverPins& UARTPins, BlindsCommandQueue& commandsQueue)
+    : UARTPins_(UARTPins), commandsQueue_(commandsQueue){}
+
+void IRAM_ATTR Tmc2209Driver::diagIsr(void* arg)
+{
+    auto* self = static_cast<Tmc2209Driver*>(arg);
+    if (!self) {
+        return;
+    }
+
+    BaseType_t hpTaskWoken = pdFALSE;
+    BlindsEvent cmd = BlindsEvent::STOP;
+    self->commandsQueue_.sendFromISR(cmd, &hpTaskWoken);
+
+    if (hpTaskWoken) {
+        portYIELD_FROM_ISR();
+    }
+}
 
 static uint8_t tmcCrc(const uint8_t* data, size_t len)
 {
@@ -62,6 +80,17 @@ esp_err_t Tmc2209Driver::init(){
                                      UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE),
                         TAG, "Failed to set UART pins");
     ESP_RETURN_ON_ERROR(uart_flush(UART_PORT), TAG, "Failed to flush UART");
+
+    gpio_config_t diagIoConf = {
+        .pin_bit_mask = (1ULL << UARTPins_.diag),
+        .mode = GPIO_MODE_INPUT,
+        .pull_up_en = GPIO_PULLUP_DISABLE,
+        .pull_down_en = GPIO_PULLDOWN_ENABLE,
+        .intr_type = GPIO_INTR_POSEDGE
+    };
+    ESP_RETURN_ON_ERROR(gpio_config(&diagIoConf), TAG, "Failed to configure DIAG pin");
+    ESP_RETURN_ON_ERROR(gpio_isr_handler_add(UARTPins_.diag, diagIsr, this),
+                        TAG, "Failed to add DIAG ISR handler");
 
     initialized_ = true;
     return ESP_OK;
@@ -195,6 +224,8 @@ esp_err_t Tmc2209Driver::configureAndVerify()
 
     ESP_RETURN_ON_ERROR(writeReg(REG_CHOPCONF, configuredChopconf), TAG, "UART FAIL: can't write CHOPCONF");
     ESP_RETURN_ON_ERROR(writeReg(REG_IHOLD_IRUN, IHOLD_IRUN_CONFIG), TAG, "UART FAIL: can't write IHOLD_IRUN");
+    ESP_RETURN_ON_ERROR(writeReg(REG_SGTHRS, AppConfig::stallGuardThreshold & SGTHRS_MASK),
+                        TAG, "UART FAIL: can't write SGTHRS");
     ESP_RETURN_ON_ERROR(readReg(REG_IFCNT, ifcntAfter), TAG, "UART FAIL: can't read IFCNT after config");
 
     uint8_t expectedIfcnt = (ifcntBefore + CONFIG_WRITE_COUNT) & 0xFF;
@@ -218,26 +249,4 @@ esp_err_t Tmc2209Driver::configureAndVerify()
 
     ESP_LOGI(TAG, "TMC2209 UART configured and verified");
     return ESP_OK;
-}
-
-void Tmc2209Driver::sgResultTask(void* arg)
-{
-    auto* self = static_cast<Tmc2209Driver*>(arg);
-    if (!self) {
-        ESP_LOGE(TAG, "SG_RESULT task started without driver context");
-        vTaskDelete(nullptr);
-        return;
-    }
-
-    while (true) {
-        uint16_t sgResult = 0;
-        esp_err_t err = self->readSgResult(sgResult);
-        if (err == ESP_OK) {
-            ESP_LOGI(TAG, "%u", sgResult);
-        } else {
-            ESP_LOGE(TAG, "Failed to read SG_RESULT: %s", esp_err_to_name(err));
-        }
-
-        vTaskDelay(pdMS_TO_TICKS(SG_RESULT_LOG_INTERVAL_MS));
-    }
 }

@@ -37,8 +37,6 @@ esp_err_t ButtonHandler::init(){
     upCtx_ = {this, ButtonPressed::UP};
     downCtx_ = {this, ButtonPressed::DOWN};
 
-    ESP_RETURN_ON_ERROR(gpio_install_isr_service(0), TAG, "Failed to install ISR service");
-
     ESP_RETURN_ON_ERROR(gpio_isr_handler_add(pins_.down, buttonIsr, &downCtx_), TAG, "Failed to add DOWN handler to ISR");
     ESP_RETURN_ON_ERROR(gpio_isr_handler_add(pins_.up, buttonIsr, &upCtx_), TAG, "Failed to add UP handler to ISR");
 

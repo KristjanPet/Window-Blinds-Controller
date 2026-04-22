@@ -22,4 +22,5 @@ struct ButtonPins{
 struct TMCUARTDriverPins{
     gpio_num_t TX;
     gpio_num_t RX;
+    gpio_num_t diag;
 };

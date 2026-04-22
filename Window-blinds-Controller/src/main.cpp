@@ -1,5 +1,6 @@
 #include <esp_log.h>
 #include <esp_system.h>
+#include <driver/gpio.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 #include "MotorController.hpp"
@@ -18,8 +19,14 @@ extern "C" void app_main(void) {
         esp_restart();
     };
 
-    Tmc2209Driver motorDriver(AppConfig::UARTDriverPin);
-    esp_err_t err = motorDriver.init();
+    esp_err_t err = gpio_install_isr_service(0);
+    if(err != ESP_OK){
+        ESP_LOGE(TAG_MAIN, "Failed to install GPIO ISR service: %s", esp_err_to_name(err));
+        esp_restart();
+    };
+
+    Tmc2209Driver motorDriver(AppConfig::UARTDriverPin, commandsQueue);
+    err = motorDriver.init();
     if(err != ESP_OK){
         ESP_LOGE(TAG_MAIN, "TMC2209 init failed: %s", esp_err_to_name(err));
         esp_restart();
@@ -34,11 +41,6 @@ extern "C" void app_main(void) {
     if(motor.init() != ESP_OK){
         esp_restart();
     };
-
-    if(xTaskCreate(Tmc2209Driver::sgResultTask, "SGResult", 3072, &motorDriver, 2, NULL) != pdPASS){
-        ESP_LOGE(TAG_MAIN, "Failed to create SG_RESULT task, restarting...");
-        esp_restart();
-    }
 
     BlindsController blinds(motor, commandsQueue);
 
