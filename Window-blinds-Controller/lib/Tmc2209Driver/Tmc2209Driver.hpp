@@ -14,5 +14,7 @@ public:
 
     esp_err_t writeReg(uint8_t reg, uint32_t value);
     esp_err_t readReg(uint8_t reg, uint32_t& value);
+    esp_err_t readSgResult(uint16_t& sgResult);
     esp_err_t configureAndVerify();
+    static void sgResultTask(void* arg);
 };

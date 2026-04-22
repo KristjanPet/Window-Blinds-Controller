@@ -33,7 +33,11 @@ constexpr uint8_t REG_GCONF = 0x00;
 constexpr uint8_t REG_IFCNT = 0x02;
 constexpr uint8_t REG_IOIN = 0x06;
 constexpr uint8_t REG_IHOLD_IRUN = 0x10;
+constexpr uint8_t REG_SG_RESULT = 0x41;
 constexpr uint8_t REG_CHOPCONF = 0x6C;
+
+constexpr uint32_t SG_RESULT_MASK = 0x03FF;
+constexpr uint32_t SG_RESULT_LOG_INTERVAL_MS = 9;
 
 constexpr uint8_t CHOPCONF_MRES_SHIFT = 24;
 constexpr uint32_t CHOPCONF_MRES_MASK = 0xFu << CHOPCONF_MRES_SHIFT;

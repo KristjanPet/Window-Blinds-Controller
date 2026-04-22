@@ -1,6 +1,7 @@
 #include <esp_log.h>
 #include <esp_system.h>
 #include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
 #include "MotorController.hpp"
 #include "ButtonHandler.hpp"
 #include "BlindsController.hpp"
@@ -33,6 +34,11 @@ extern "C" void app_main(void) {
     if(motor.init() != ESP_OK){
         esp_restart();
     };
+
+    if(xTaskCreate(Tmc2209Driver::sgResultTask, "SGResult", 3072, &motorDriver, 2, NULL) != pdPASS){
+        ESP_LOGE(TAG_MAIN, "Failed to create SG_RESULT task, restarting...");
+        esp_restart();
+    }
 
     BlindsController blinds(motor, commandsQueue);
 

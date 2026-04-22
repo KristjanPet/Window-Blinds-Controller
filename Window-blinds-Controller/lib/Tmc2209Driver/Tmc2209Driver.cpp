@@ -4,6 +4,8 @@
 #include <driver/uart.h>
 #include <esp_check.h>
 #include <esp_log.h>
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
 
 #include "AppConfig.hpp"
 #include "Tmc2209Constants.hpp"
@@ -134,8 +136,6 @@ esp_err_t Tmc2209Driver::readReg(uint8_t reg, uint32_t& value)
         return ESP_ERR_INVALID_RESPONSE;
     }
 
-    ESP_LOGI(TAG, "Echo: %02X %02X %02X %02X", echo[0], echo[1], echo[2], echo[3]);
-
     uint8_t reply[TMC_REPLY_FRAME_SIZE] = {};
     int read = uart_read_bytes(UART_PORT, reply, sizeof(reply), UART_REPLY_TIMEOUT);
     if (read != static_cast<int>(sizeof(reply))) {
@@ -143,10 +143,6 @@ esp_err_t Tmc2209Driver::readReg(uint8_t reg, uint32_t& value)
                  reg, static_cast<unsigned>(sizeof(reply)), read);
         return ESP_ERR_TIMEOUT;
     }
-
-    ESP_LOGI(TAG, "Reply: %02X %02X %02X %02X %02X %02X %02X %02X",
-             reply[0], reply[1], reply[2], reply[3],
-             reply[4], reply[5], reply[6], reply[7]);
 
     if (reply[0] != TMC_SYNC || reply[1] != TMC_REPLY_MASTER_ADDR || reply[2] != reg) {
         ESP_LOGE(TAG, "Bad reply header: %02X %02X %02X", reply[0], reply[1], reply[2]);
@@ -165,6 +161,18 @@ esp_err_t Tmc2209Driver::readReg(uint8_t reg, uint32_t& value)
 
     value = decodeRegisterValue(reply);
 
+    return ESP_OK;
+}
+
+esp_err_t Tmc2209Driver::readSgResult(uint16_t& sgResult)
+{
+    uint32_t rawValue = 0;
+    esp_err_t err = readReg(REG_SG_RESULT, rawValue);
+    if (err != ESP_OK) {
+        return err;
+    }
+
+    sgResult = static_cast<uint16_t>(rawValue & SG_RESULT_MASK);
     return ESP_OK;
 }
 
@@ -210,4 +218,26 @@ esp_err_t Tmc2209Driver::configureAndVerify()
 
     ESP_LOGI(TAG, "TMC2209 UART configured and verified");
     return ESP_OK;
+}
+
+void Tmc2209Driver::sgResultTask(void* arg)
+{
+    auto* self = static_cast<Tmc2209Driver*>(arg);
+    if (!self) {
+        ESP_LOGE(TAG, "SG_RESULT task started without driver context");
+        vTaskDelete(nullptr);
+        return;
+    }
+
+    while (true) {
+        uint16_t sgResult = 0;
+        esp_err_t err = self->readSgResult(sgResult);
+        if (err == ESP_OK) {
+            ESP_LOGI(TAG, "%u", sgResult);
+        } else {
+            ESP_LOGE(TAG, "Failed to read SG_RESULT: %s", esp_err_to_name(err));
+        }
+
+        vTaskDelay(pdMS_TO_TICKS(SG_RESULT_LOG_INTERVAL_MS));
+    }
 }
