@@ -33,16 +33,18 @@ esp_err_t BlindsController::handleCommand(BlindsEvent cmd){
         }
         break;
     case BlindsEvent::LIMIT_REACHED:
-        err = motor_.stop();
-        if(err == ESP_OK ){
-            if(state_ != BlindsState::FAULT){
-                state_ = BlindsState::IDLE;
-            } else{ 
-                ESP_LOGE(TAG, "Blinds state is FAULT");
+        if (state_ == BlindsState::MOVING_UP || state_ == BlindsState::MOVING_DOWN) {
+            err = motor_.stop();
+            if(err == ESP_OK ){
+                if(state_ != BlindsState::FAULT){
+                    state_ = BlindsState::IDLE;
+                } else{ 
+                    ESP_LOGE(TAG, "Blinds state is FAULT");
+                }
+            } else{
+                    ESP_LOGE(TAG, "Error sending command: %s", esp_err_to_name(err));
             }
-        } else{
-                ESP_LOGE(TAG, "Error sending command: %s", esp_err_to_name(err));
-        }
+        }  
         break;
     case BlindsEvent::UP:
         if(state_ != BlindsState::FAULT){

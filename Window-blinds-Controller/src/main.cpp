@@ -1,8 +1,13 @@
+#include <esp_log.h>
+#include <esp_system.h>
+#include <driver/gpio.h>
 #include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
 #include "MotorController.hpp"
 #include "ButtonHandler.hpp"
 #include "BlindsController.hpp"
 #include "BlindsCommandQueue.hpp"
+#include "Tmc2209Driver.hpp"
 #include "AppConfig.hpp"
 
 static const char *TAG_MAIN = "MAIN";
@@ -11,6 +16,24 @@ extern "C" void app_main(void) {
 
     BlindsCommandQueue commandsQueue;
     if(commandsQueue.init() != ESP_OK){
+        esp_restart();
+    };
+
+    esp_err_t err = gpio_install_isr_service(0);
+    if(err != ESP_OK){
+        ESP_LOGE(TAG_MAIN, "Failed to install GPIO ISR service: %s", esp_err_to_name(err));
+        esp_restart();
+    };
+
+    Tmc2209Driver motorDriver(AppConfig::UARTDriverPin, commandsQueue);
+    err = motorDriver.init();
+    if(err != ESP_OK){
+        ESP_LOGE(TAG_MAIN, "TMC2209 init failed: %s", esp_err_to_name(err));
+        esp_restart();
+    };
+    err = motorDriver.configureAndVerify();
+    if(err != ESP_OK){
+        ESP_LOGE(TAG_MAIN, "TMC2209 config failed: %s", esp_err_to_name(err));
         esp_restart();
     };
 

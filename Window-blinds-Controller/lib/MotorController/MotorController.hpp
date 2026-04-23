@@ -16,7 +16,7 @@ enum class MotorState{
 class MotorController : public IMotor{
     
 private:
-    MotorPins pins_;
+    const MotorPins pins_;
     uint32_t togglePeriodUs_;
     gptimer_handle_t timer_ = nullptr;
 
