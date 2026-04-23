@@ -25,9 +25,8 @@ void IRAM_ATTR Tmc2209Driver::diagIsr(void* arg)
     }
 
     BaseType_t hpTaskWoken = pdFALSE;
-    BlindsEvent cmd = BlindsEvent::STOP;
+    BlindsEvent cmd = BlindsEvent::LIMIT_REACHED;
     self->commandsQueue_.sendFromISR(cmd, &hpTaskWoken);
-
     if (hpTaskWoken) {
         portYIELD_FROM_ISR();
     }
@@ -224,6 +223,8 @@ esp_err_t Tmc2209Driver::configureAndVerify()
 
     ESP_RETURN_ON_ERROR(writeReg(REG_CHOPCONF, configuredChopconf), TAG, "UART FAIL: can't write CHOPCONF");
     ESP_RETURN_ON_ERROR(writeReg(REG_IHOLD_IRUN, IHOLD_IRUN_CONFIG), TAG, "UART FAIL: can't write IHOLD_IRUN");
+    ESP_RETURN_ON_ERROR(writeReg(REG_TPWMTHRS, TPWMTHRS_CONFIG), TAG, "UART FAIL: can't write TPWMTHRS");
+    ESP_RETURN_ON_ERROR(writeReg(REG_TCOOLTHRS, TCOOLTHRS_CONFIG), TAG, "UART FAIL: can't write TCOOLTHRS");
     ESP_RETURN_ON_ERROR(writeReg(REG_SGTHRS, AppConfig::stallGuardThreshold & SGTHRS_MASK),
                         TAG, "UART FAIL: can't write SGTHRS");
     ESP_RETURN_ON_ERROR(readReg(REG_IFCNT, ifcntAfter), TAG, "UART FAIL: can't read IFCNT after config");

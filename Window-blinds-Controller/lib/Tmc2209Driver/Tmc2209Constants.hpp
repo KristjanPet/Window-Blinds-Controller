@@ -33,10 +33,14 @@ constexpr uint8_t REG_GCONF = 0x00;
 constexpr uint8_t REG_IFCNT = 0x02;
 constexpr uint8_t REG_IOIN = 0x06;
 constexpr uint8_t REG_IHOLD_IRUN = 0x10;
+constexpr uint8_t REG_TPWMTHRS = 0x13;
+constexpr uint8_t REG_TCOOLTHRS = 0x14;
 constexpr uint8_t REG_SGTHRS = 0x40;
 constexpr uint8_t REG_SG_RESULT = 0x41;
 constexpr uint8_t REG_CHOPCONF = 0x6C;
 
+constexpr uint32_t TPWMTHRS_CONFIG = 0;
+constexpr uint32_t TCOOLTHRS_CONFIG = 1000;
 constexpr uint32_t SGTHRS_MASK = 0xFF;
 constexpr uint32_t SG_RESULT_MASK = 0x03FF;
 
@@ -56,6 +60,6 @@ constexpr uint32_t IHOLD_IRUN_CONFIG =
     (IRUN_VALUE << IRUN_SHIFT) |
     (IHOLDDELAY_VALUE << IHOLDDELAY_SHIFT);
 
-constexpr uint8_t CONFIG_WRITE_COUNT = 4;
+constexpr uint8_t CONFIG_WRITE_COUNT = 6;
 
 } // namespace Tmc2209Constants

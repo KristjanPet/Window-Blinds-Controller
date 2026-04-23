@@ -34,6 +34,7 @@ esp_err_t BlindsController::handleCommand(BlindsEvent cmd){
         break;
     case BlindsEvent::LIMIT_REACHED:
         err = motor_.stop();
+        ESP_LOGI(TAG, "Stall");
         if(err == ESP_OK ){
             if(state_ != BlindsState::FAULT){
                 state_ = BlindsState::IDLE;
