@@ -5,6 +5,7 @@
 #include <freertos/task.h>
 #include "MotorController.hpp"
 #include "ButtonHandler.hpp"
+#include "HomeSensor.hpp"
 #include "BlindsController.hpp"
 #include "BlindsCommandQueue.hpp"
 #include "Tmc2209Driver.hpp"
@@ -46,6 +47,12 @@ extern "C" void app_main(void) {
 
     ButtonHandler buttonHandler(AppConfig::buttonPins, commandsQueue);
     if(buttonHandler.init() != ESP_OK){
+        esp_restart();
+    };
+
+    HomeSensor homeSensor(AppConfig::homeSensorPin, commandsQueue);
+    if(homeSensor.init() != ESP_OK){
+        ESP_LOGE(TAG_MAIN, "Home sensor init failed");
         esp_restart();
     };
 

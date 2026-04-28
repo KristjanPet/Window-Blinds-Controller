@@ -19,4 +19,7 @@ namespace AppConfig{
     //buttons settings
     constexpr ButtonPins buttonPins = {GPIO_NUM_33, GPIO_NUM_32}; //up, down
     constexpr uint8_t debouncTime = 30; //mS
+
+    //home/reference sensor settings
+    constexpr gpio_num_t homeSensorPin = GPIO_NUM_18;
 }

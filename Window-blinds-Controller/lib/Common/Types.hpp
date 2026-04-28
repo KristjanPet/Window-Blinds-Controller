@@ -5,7 +5,8 @@ enum class BlindsEvent{
     UP,
     DOWN,
     STOP,
-    LIMIT_REACHED
+    LIMIT_REACHED,
+    HOMING_REACHED
 };
 
 struct MotorPins{
