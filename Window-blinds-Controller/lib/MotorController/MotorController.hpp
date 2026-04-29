@@ -22,7 +22,7 @@ private:
 
     volatile bool stepLevel_ = false;
     MotorState motorState_ = MotorState::STOPPED;
-    int32_t currentStep_ = 0;
+    int32_t currentStep_ = 1; //TODO temp
     volatile bool softLimitHit_ = false;
 
     BlindsCommandQueue& commandsQueue_;

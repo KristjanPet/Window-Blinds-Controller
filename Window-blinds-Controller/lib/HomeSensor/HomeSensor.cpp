@@ -40,7 +40,7 @@ esp_err_t HomeSensor::init(){
 
     activeAtInit_ = (gpio_get_level(pin_) == 0);
     if(activeAtInit_){
-        ESP_LOGW(TAG, "Home sensor is active at init");
+        ESP_LOGW(TAG, "Home sensor is active at init"); //TODO move a bit to check if it is even working
     }
 
     ESP_RETURN_ON_ERROR(gpio_isr_handler_add(pin_, sensorIsr, this),

@@ -25,10 +25,10 @@ bool IRAM_ATTR MotorController::stepTimerCallback( gptimer_handle_t timer, const
 
         if(self->stepLevel_){
             if(self->motorState_ == MotorState::DOWN){
-                self->currentStep_--;
+                // self->currentStep_--;
             }
             else if(self->motorState_ == MotorState::UP){
-                self->currentStep_++;
+                // self->currentStep_++;
             }
         }
     }

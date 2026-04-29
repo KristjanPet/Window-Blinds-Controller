@@ -44,7 +44,23 @@ esp_err_t BlindsController::handleCommand(BlindsEvent cmd){
             } else{
                     ESP_LOGE(TAG, "Error sending command: %s", esp_err_to_name(err));
             }
+            ESP_LOGI(TAG, "LIMIT DETECTED");
         }  
+        break;
+    case BlindsEvent::HOMING_REACHED:
+        err = motor_.stop();
+        if(err == ESP_OK ){
+            if(state_ == BlindsState::MOVING_DOWN){
+                state_ = BlindsState::IDLE;
+            } else{
+                // state_ = BlindsState::FAULT;
+                ESP_LOGE(TAG, "Homing detected unexpectedly, Blinds state set FAULT");
+            }
+        } else{
+                ESP_LOGE(TAG, "Error sending command: %s", esp_err_to_name(err));
+        }
+        
+        ESP_LOGI(TAG, "HOMING REACHED");
         break;
     case BlindsEvent::UP:
         if(state_ != BlindsState::FAULT){
