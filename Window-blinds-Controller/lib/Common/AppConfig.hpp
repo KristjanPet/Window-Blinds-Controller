@@ -9,7 +9,13 @@ namespace AppConfig{
     //motor settings
     constexpr MotorPins motorPins = {GPIO_NUM_26, GPIO_NUM_27, GPIO_NUM_25}; //step, dir, enable
     constexpr uint32_t togglePeriodUs = 100; //in uS
+    constexpr uint32_t StartTogglePeriodUs = 200; //in uS
+    constexpr uint32_t rampStepInterval = 30; //real STEP rising edges per 1 uS ramp change
     constexpr uint32_t maxStep = 1000 * 100; //max num of steps
+    static_assert(togglePeriodUs > 0, "togglePeriodUs must be greater than zero");
+    static_assert(StartTogglePeriodUs > 0, "StartTogglePeriodUs must be greater than zero");
+    static_assert(StartTogglePeriodUs >= togglePeriodUs, "StartTogglePeriodUs must not be faster than togglePeriodUs");
+    static_assert(rampStepInterval > 0, "rampStepInterval must be greater than zero");
 
     //motor driver main settings
     constexpr TMCUARTDriverPins UARTDriverPin = {GPIO_NUM_17, GPIO_NUM_16, GPIO_NUM_19}; //TX, RX, DIAG

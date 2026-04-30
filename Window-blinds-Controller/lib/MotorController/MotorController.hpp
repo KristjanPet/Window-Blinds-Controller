@@ -17,13 +17,14 @@ class MotorController : public IMotor{
     
 private:
     const MotorPins pins_;
-    uint32_t togglePeriodUs_;
     gptimer_handle_t timer_ = nullptr;
 
     volatile bool stepLevel_ = false;
     MotorState motorState_ = MotorState::STOPPED;
     int32_t currentStep_ = 1; //TODO temp
     volatile bool softLimitHit_ = false;
+    uint32_t currentTogglePeriodUs_ = AppConfig::StartTogglePeriodUs;
+    uint32_t rampStepCounter_ = 0;
 
     BlindsCommandQueue& commandsQueue_;
     portMUX_TYPE motorStepMux_ = portMUX_INITIALIZER_UNLOCKED;
@@ -32,8 +33,12 @@ private:
         gptimer_handle_t timer,
         const gptimer_alarm_event_data_t *edata,
         void *user_ctx);
+    static esp_err_t IRAM_ATTR setAlarmAt(gptimer_handle_t timer, uint64_t alarmCount);
+    void resetRamp();
+    void updateRampAfterStep();
+    esp_err_t startMovement(MotorState state, uint32_t dirLevel);
 public:
-    MotorController(const MotorPins& pins, const uint32_t& togglePeriodUs, BlindsCommandQueue& commandsQueue);
+    MotorController(const MotorPins& pins, BlindsCommandQueue& commandsQueue);
     esp_err_t init();
     esp_err_t moveUp() override;
     esp_err_t moveDown() override;

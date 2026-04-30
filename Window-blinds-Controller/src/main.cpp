@@ -38,7 +38,7 @@ extern "C" void app_main(void) {
         esp_restart();
     };
 
-    MotorController motor(AppConfig::motorPins, AppConfig::togglePeriodUs, commandsQueue);
+    MotorController motor(AppConfig::motorPins, commandsQueue);
     if(motor.init() != ESP_OK){
         esp_restart();
     };
