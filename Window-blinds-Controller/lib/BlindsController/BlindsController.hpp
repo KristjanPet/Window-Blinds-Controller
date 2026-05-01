@@ -6,6 +6,7 @@
 
 enum class BlindsState{
     IDLE,
+    HOME,
     MOVING_UP,
     MOVING_DOWN,
     FAULT

@@ -21,7 +21,7 @@ private:
 
     volatile bool stepLevel_ = false;
     MotorState motorState_ = MotorState::STOPPED;
-    int32_t currentStep_ = 1; //TODO temp
+    int32_t currentStep_ = 1000 * 60; //TODO temp
     volatile bool softLimitHit_ = false;
     uint32_t currentTogglePeriodUs_ = AppConfig::StartTogglePeriodUs;
     uint32_t rampStepCounter_ = 0;
@@ -43,4 +43,5 @@ public:
     esp_err_t moveUp() override;
     esp_err_t moveDown() override;
     esp_err_t stop() override;
+    void setCurrentStep(int32_t currentStep) override;
 };

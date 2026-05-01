@@ -53,10 +53,10 @@ bool IRAM_ATTR MotorController::stepTimerCallback( gptimer_handle_t timer, const
         if(stepRet == ESP_OK && self->stepLevel_){
             self->updateRampAfterStep();
             if(self->motorState_ == MotorState::DOWN){
-                // self->currentStep_--;
+                self->currentStep_--;
             }
             else if(self->motorState_ == MotorState::UP){
-                // self->currentStep_++;
+                self->currentStep_++;
             }
         }
         if(stepRet == ESP_OK){
@@ -192,4 +192,8 @@ esp_err_t MotorController::moveUp(){
     ESP_LOGI(TAG, " UP");
 
     return ESP_OK;
+}
+
+void MotorController::setCurrentStep(int32_t currentStep){
+    currentStep_ = currentStep;
 }

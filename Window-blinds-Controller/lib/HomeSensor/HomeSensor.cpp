@@ -26,13 +26,10 @@ void IRAM_ATTR HomeSensor::sensorIsr(void* arg){
 }
 
 esp_err_t HomeSensor::init(){
-    // Assumption to verify on bench before connecting to ESP32:
-    // NJK signal is conditioned to ESP32-safe levels and behaves as active-low
-    // open-collector, so this input uses the internal pull-up and falling edge.
     gpio_config_t sensorIoConf = {
         .pin_bit_mask = (1ULL << pin_),
         .mode = GPIO_MODE_INPUT,
-        .pull_up_en = GPIO_PULLUP_ENABLE,
+        .pull_up_en = GPIO_PULLUP_ENABLE, //TODO check this
         .pull_down_en = GPIO_PULLDOWN_DISABLE,
         .intr_type = GPIO_INTR_NEGEDGE
     };

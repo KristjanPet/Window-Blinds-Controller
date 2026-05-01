@@ -51,8 +51,13 @@ esp_err_t BlindsController::handleCommand(BlindsEvent cmd){
         err = motor_.stop();
         if(err == ESP_OK ){
             if(state_ == BlindsState::MOVING_DOWN){
-                state_ = BlindsState::IDLE;
-            } else{
+                state_ = BlindsState::HOME;
+                vTaskDelay(pdMS_TO_TICKS(200));
+                motor_.moveUp();
+                vTaskDelay(pdMS_TO_TICKS(300));
+                motor_.stop();
+                motor_.setCurrentStep(0);
+            } else if(state_ != BlindsState::HOME){
                 // state_ = BlindsState::FAULT;
                 ESP_LOGE(TAG, "Homing detected unexpectedly, Blinds state set FAULT");
             }
@@ -64,7 +69,7 @@ esp_err_t BlindsController::handleCommand(BlindsEvent cmd){
         break;
     case BlindsEvent::UP:
         if(state_ != BlindsState::FAULT){
-            if(state_ != BlindsState::IDLE){   
+            if(state_ == BlindsState::MOVING_DOWN || state_ == BlindsState::MOVING_UP){   
                 err = motor_.stop();
                 if(err == ESP_OK) state_ = BlindsState::IDLE;
             }
@@ -81,7 +86,7 @@ esp_err_t BlindsController::handleCommand(BlindsEvent cmd){
         break;
     case BlindsEvent::DOWN:
         if(state_ != BlindsState::FAULT){
-            if(state_ != BlindsState::IDLE){   
+            if(state_ == BlindsState::MOVING_DOWN || state_ == BlindsState::MOVING_UP){   
                 err = motor_.stop();
                 if(err == ESP_OK) state_ = BlindsState::IDLE;
             }
