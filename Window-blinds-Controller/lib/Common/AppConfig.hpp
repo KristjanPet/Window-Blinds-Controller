@@ -11,7 +11,7 @@ namespace AppConfig{
     constexpr uint32_t togglePeriodUs = 100; //in uS
     constexpr uint32_t StartTogglePeriodUs = 200; //in uS
     constexpr uint32_t rampStepInterval = 30; //real STEP rising edges per 1 uS ramp change
-    constexpr uint32_t maxStep = 1000 * 100; //max num of steps
+    constexpr uint32_t offsetOfMaxStep = 500; //offset from stall detected
     static_assert(togglePeriodUs > 0, "togglePeriodUs must be greater than zero");
     static_assert(StartTogglePeriodUs > 0, "StartTogglePeriodUs must be greater than zero");
     static_assert(StartTogglePeriodUs >= togglePeriodUs, "StartTogglePeriodUs must not be faster than togglePeriodUs");

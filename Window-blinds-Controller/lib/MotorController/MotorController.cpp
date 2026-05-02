@@ -45,8 +45,8 @@ bool IRAM_ATTR MotorController::stepTimerCallback( gptimer_handle_t timer, const
     BaseType_t hpTaskWoken = false;
 
     taskENTER_CRITICAL_ISR(&self->motorStepMux_);
-    if((self->currentStep_ > 0 && self->motorState_ == MotorState::DOWN) ||
-        (self->currentStep_ < AppConfig::maxStep && self->motorState_ == MotorState::UP)){
+    if((self->currentStep_ > self->targetStep_ && self->motorState_ == MotorState::DOWN) ||
+        (self->currentStep_ < self->targetStep_ && self->motorState_ == MotorState::UP && self->maxStep_ > 0)){
         self->stepLevel_ = !self->stepLevel_;
         esp_err_t stepRet = gpio_set_level(self->pins_.step, self->stepLevel_);
 
@@ -86,7 +86,7 @@ bool IRAM_ATTR MotorController::stepTimerCallback( gptimer_handle_t timer, const
         }
     }
 
-    if(notifyLimit){
+    if(notifyLimit && self->maxStep_ != 0){
         BlindsEvent cmd = BlindsEvent::LIMIT_REACHED;
         self->commandsQueue_.sendFromISR(cmd, &hpTaskWoken);
     }
@@ -180,20 +180,33 @@ esp_err_t MotorController::startMovement(MotorState state, uint32_t dirLevel){
     return ESP_OK;
 }
 
-esp_err_t MotorController::moveDown(){
-    ESP_RETURN_ON_ERROR(startMovement(MotorState::DOWN, 0), TAG, "Failed starting downward movement");
-    ESP_LOGI(TAG, " DOWN");
+esp_err_t MotorController::move(int32_t targetStep){
 
-    return ESP_OK;
-}
-
-esp_err_t MotorController::moveUp(){
-    ESP_RETURN_ON_ERROR(startMovement(MotorState::UP, 1), TAG, "Failed starting upward movement");
-    ESP_LOGI(TAG, " UP");
+    if(targetStep < maxStep_ || targetStep >= -1){
+        if(targetStep == -1){
+            targetStep_ = maxStep_;
+        } else {targetStep_ = targetStep;}
+        
+        if(targetStep_ > currentStep_){
+            ESP_RETURN_ON_ERROR(startMovement(MotorState::UP, 1), TAG, "Failed starting upward movement");
+            ESP_LOGI(TAG, " UP");
+        }
+        else if(targetStep_ < currentStep_){
+            ESP_RETURN_ON_ERROR(startMovement(MotorState::DOWN, 0), TAG, "Failed starting downward movement");
+            ESP_LOGI(TAG, " DOWN");
+        }
+    }
+    else{
+        return ESP_ERR_INVALID_ARG;
+    }
 
     return ESP_OK;
 }
 
 void MotorController::setCurrentStep(int32_t currentStep){
     currentStep_ = currentStep;
+}
+
+void MotorController::setMaxStep(int32_t offset){
+    maxStep_ = currentStep_ - offset;
 }

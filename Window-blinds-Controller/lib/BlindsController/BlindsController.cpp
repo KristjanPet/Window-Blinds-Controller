@@ -53,7 +53,8 @@ esp_err_t BlindsController::handleCommand(BlindsEvent cmd){
             if(state_ == BlindsState::MOVING_DOWN){
                 state_ = BlindsState::HOME;
                 vTaskDelay(pdMS_TO_TICKS(200));
-                motor_.moveUp();
+                motor_.move(-1);
+                ESP_LOGI(TAG, "HOMING MOVE UP");
                 vTaskDelay(pdMS_TO_TICKS(300));
                 motor_.stop();
                 motor_.setCurrentStep(0);
@@ -74,7 +75,7 @@ esp_err_t BlindsController::handleCommand(BlindsEvent cmd){
                 if(err == ESP_OK) state_ = BlindsState::IDLE;
             }
             else{
-                err = motor_.moveUp();
+                err = motor_.move(-1);
                 if(err == ESP_OK) state_ = BlindsState::MOVING_UP;
             }
             if(err != ESP_OK) ESP_LOGE(TAG, "Error sending command: %s", esp_err_to_name(err));
@@ -91,7 +92,7 @@ esp_err_t BlindsController::handleCommand(BlindsEvent cmd){
                 if(err == ESP_OK) state_ = BlindsState::IDLE;
             }
             else{
-                err = motor_.moveDown();
+                err = motor_.move(0);
                 if(err == ESP_OK) state_ = BlindsState::MOVING_DOWN;
             }
             if(err != ESP_OK) ESP_LOGE(TAG, "Error sending command: %s", esp_err_to_name(err));

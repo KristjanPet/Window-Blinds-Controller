@@ -21,7 +21,9 @@ private:
 
     volatile bool stepLevel_ = false;
     MotorState motorState_ = MotorState::STOPPED;
-    int32_t currentStep_ = 1000 * 60; //TODO temp
+    int32_t currentStep_ = 1000 * 30; //TODO temp
+    int32_t maxStep_ = 1000 * 77; //TODO temp
+    int32_t targetStep_ = 0;
     volatile bool softLimitHit_ = false;
     uint32_t currentTogglePeriodUs_ = AppConfig::StartTogglePeriodUs;
     uint32_t rampStepCounter_ = 0;
@@ -40,8 +42,8 @@ private:
 public:
     MotorController(const MotorPins& pins, BlindsCommandQueue& commandsQueue);
     esp_err_t init();
-    esp_err_t moveUp() override;
-    esp_err_t moveDown() override;
+    esp_err_t move(int32_t targetStep) override;
     esp_err_t stop() override;
     void setCurrentStep(int32_t currentStep) override;
+    void setMaxStep(int32_t offset = 0) override;
 };
