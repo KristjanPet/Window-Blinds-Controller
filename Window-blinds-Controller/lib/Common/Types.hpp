@@ -5,6 +5,7 @@ enum class BlindsEvent{
     UP,
     DOWN,
     STOP,
+    CALIBRATE,
     LIMIT_REACHED,
     HOMING_REACHED
 };

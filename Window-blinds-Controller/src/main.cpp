@@ -66,7 +66,12 @@ extern "C" void app_main(void) {
     }
 
     vTaskDelay(pdMS_TO_TICKS(1000));
-    ESP_LOGI(TAG_MAIN, "Init complete, running program....");
+    ESP_LOGI(TAG_MAIN, "Init complete, calibrating blinds....");
+
+    if(commandsQueue.send(BlindsEvent::CALIBRATE) != pdTRUE){
+        ESP_LOGE(TAG_MAIN, "Failed to start calibrating, restarting...");
+        esp_restart();
+    }
 
     while (true){
         vTaskDelay(pdMS_TO_TICKS(100));
