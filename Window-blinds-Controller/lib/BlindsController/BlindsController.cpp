@@ -35,11 +35,11 @@ esp_err_t BlindsController::handleCommand(BlindsEvent cmd){
     case BlindsEvent::CALIBRATE:
         if(state_ != BlindsState::FAULT){ 
             state_ = BlindsState::CALIBRATING;
-            err = motor_.move(0);
+            err = motor_.move(0, true);
             if(err == ESP_OK ){
                 ESP_LOGI(TAG, "Moving to HOME");
             } else{
-                    ESP_LOGE(TAG, "Error sending command: %s", esp_err_to_name(err));
+                ESP_LOGE(TAG, "Error sending command: %s", esp_err_to_name(err));
             }
         }
         else{
@@ -58,9 +58,11 @@ esp_err_t BlindsController::handleCommand(BlindsEvent cmd){
             } else{
                     ESP_LOGE(TAG, "Error sending command: %s", esp_err_to_name(err));
             }
-            ESP_LOGI(TAG, "LIMIT DETECTED");
+            ESP_LOGI(TAG, "LIMIT REACHED");
         } 
-        else if (state_ == BlindsState::CALIBRATING){
+        break;
+    case BlindsEvent::STALL_DETECTED:
+        if (state_ == BlindsState::CALIBRATING){
             err = motor_.stop();
             if(err == ESP_OK ){
                 if(state_ != BlindsState::FAULT){
@@ -74,31 +76,30 @@ esp_err_t BlindsController::handleCommand(BlindsEvent cmd){
                     ESP_LOGE(TAG, "Error sending command: %s", esp_err_to_name(err));
             }
         }
+        else if(state_ == BlindsState::MOVING_UP || state_ == BlindsState::MOVING_DOWN){
+            //TODO normal stall detected
+        }
+        else{
+            // ESP_LOGE(TAG, "Stall detected unexpectedly");
+        }
         break;
     case BlindsEvent::HOMING_REACHED:    
         ESP_LOGI(TAG, "HOMING REACHED");
         err = motor_.stop();
-        ESP_LOGI(TAG, "HOMING STOP");
         if(err == ESP_OK ){
             if(state_ == BlindsState::CALIBRATING){
+                motor_.setHoming(AppConfig::offsetOfMinStep);
                 vTaskDelay(pdMS_TO_TICKS(200));
                 motor_.move(-1);
                 ESP_LOGI(TAG, "HOMING MOVE UP");
-                vTaskDelay(pdMS_TO_TICKS(300));
-                motor_.stop();
-                motor_.setCurrentStep(0);
-                ESP_LOGI(TAG, "HOMING STOP & SET");
-                vTaskDelay(pdMS_TO_TICKS(300));
-                motor_.move(-1);
-                ESP_LOGI(TAG, "HOMING MOVE UP");
-            } else if(state_ != BlindsState::HOME){
+            }
+            else{
                 // state_ = BlindsState::FAULT;
                 ESP_LOGE(TAG, "Homing detected unexpectedly, Blinds state set FAULT");
             }
         } else{
                 ESP_LOGE(TAG, "Error sending command: %s", esp_err_to_name(err));
         }
-
         break;
     case BlindsEvent::UP:
         if(state_ != BlindsState::FAULT){

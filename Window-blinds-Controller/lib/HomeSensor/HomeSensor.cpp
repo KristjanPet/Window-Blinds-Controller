@@ -31,7 +31,7 @@ esp_err_t HomeSensor::init(){
         .mode = GPIO_MODE_INPUT,
         .pull_up_en = GPIO_PULLUP_ENABLE, //TODO check this
         .pull_down_en = GPIO_PULLDOWN_DISABLE,
-        .intr_type = GPIO_INTR_NEGEDGE
+        .intr_type = GPIO_INTR_POSEDGE
     };
     ESP_RETURN_ON_ERROR(gpio_config(&sensorIoConf), TAG, "Failed to configure home sensor GPIO");
 

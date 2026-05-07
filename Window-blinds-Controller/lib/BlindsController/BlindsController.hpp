@@ -6,7 +6,6 @@
 
 enum class BlindsState{
     IDLE,
-    HOME,
     CALIBRATING,
     MOVING_UP,
     MOVING_DOWN,

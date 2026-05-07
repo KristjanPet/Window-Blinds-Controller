@@ -46,7 +46,7 @@ bool IRAM_ATTR MotorController::stepTimerCallback( gptimer_handle_t timer, const
 
     taskENTER_CRITICAL_ISR(&self->motorStepMux_);
     if((self->currentStep_ > self->targetStep_ && self->motorState_ == MotorState::DOWN) ||
-        (self->currentStep_ < self->targetStep_ && self->motorState_ == MotorState::UP && self->maxStep_ > 0)){
+        (self->currentStep_ < self->targetStep_ && self->motorState_ == MotorState::UP)){
         self->stepLevel_ = !self->stepLevel_;
         esp_err_t stepRet = gpio_set_level(self->pins_.step, self->stepLevel_);
 
@@ -180,7 +180,7 @@ esp_err_t MotorController::startMovement(MotorState state, uint32_t dirLevel){
     return ESP_OK;
 }
 
-esp_err_t MotorController::move(int32_t targetStep){
+esp_err_t MotorController::move(int32_t targetStep, bool isCalibrating ){
 
     if(targetStep < maxStep_ || targetStep >= -1){
         if(targetStep == -1){
@@ -191,7 +191,7 @@ esp_err_t MotorController::move(int32_t targetStep){
             ESP_RETURN_ON_ERROR(startMovement(MotorState::UP, 1), TAG, "Failed starting upward movement");
             ESP_LOGI(TAG, " UP");
         }
-        else if(targetStep_ < currentStep_){
+        else if(targetStep_ < currentStep_ || isCalibrating){
             ESP_RETURN_ON_ERROR(startMovement(MotorState::DOWN, 0), TAG, "Failed starting downward movement");
             ESP_LOGI(TAG, " DOWN");
         }
@@ -203,8 +203,8 @@ esp_err_t MotorController::move(int32_t targetStep){
     return ESP_OK;
 }
 
-void MotorController::setCurrentStep(int32_t currentStep){
-    currentStep_ = currentStep;
+void MotorController::setHoming(int32_t offset){
+    currentStep_ = 0 - offset;
 }
 
 void MotorController::setMaxStep(int32_t offset){

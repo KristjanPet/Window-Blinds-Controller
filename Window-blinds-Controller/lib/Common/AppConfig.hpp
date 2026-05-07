@@ -11,11 +11,16 @@ namespace AppConfig{
     constexpr uint32_t togglePeriodUs = 100; //in uS
     constexpr uint32_t StartTogglePeriodUs = 200; //in uS
     constexpr uint32_t rampStepInterval = 30; //real STEP rising edges per 1 uS ramp change
-    constexpr uint32_t offsetOfMaxStep = 500; //offset from stall detected
     static_assert(togglePeriodUs > 0, "togglePeriodUs must be greater than zero");
     static_assert(StartTogglePeriodUs > 0, "StartTogglePeriodUs must be greater than zero");
     static_assert(StartTogglePeriodUs >= togglePeriodUs, "StartTogglePeriodUs must not be faster than togglePeriodUs");
     static_assert(rampStepInterval > 0, "rampStepInterval must be greater than zero");
+
+    //Blinds settings
+    constexpr uint32_t offsetOfMaxStep = 800; //offset from stall detected
+    constexpr uint32_t offsetOfMinStep = 800; //offset from home detected
+    static_assert(offsetOfMaxStep > 0, "offsetOfMaxStep must be greater than zero");
+    static_assert(offsetOfMinStep > 0, "offsetOfMinStep must be greater than zero");
 
     //motor driver main settings
     constexpr TMCUARTDriverPins UARTDriverPin = {GPIO_NUM_17, GPIO_NUM_16, GPIO_NUM_19}; //TX, RX, DIAG
