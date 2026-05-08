@@ -91,7 +91,6 @@ esp_err_t BlindsController::handleCommand(BlindsEvent cmd){
                 motor_.setHoming(AppConfig::offsetOfMinStep);
                 vTaskDelay(pdMS_TO_TICKS(200));
                 motor_.move(-1);
-                ESP_LOGI(TAG, "HOMING MOVE UP");
             }
             else{
                 // state_ = BlindsState::FAULT;

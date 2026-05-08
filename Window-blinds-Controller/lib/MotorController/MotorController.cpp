@@ -86,7 +86,7 @@ bool IRAM_ATTR MotorController::stepTimerCallback( gptimer_handle_t timer, const
         }
     }
 
-    if(notifyLimit && self->maxStep_ != 0){
+    if(notifyLimit){
         BlindsEvent cmd = BlindsEvent::LIMIT_REACHED;
         self->commandsQueue_.sendFromISR(cmd, &hpTaskWoken);
     }
@@ -187,11 +187,11 @@ esp_err_t MotorController::move(int32_t targetStep, bool isCalibrating ){
             targetStep_ = maxStep_;
         } else {targetStep_ = targetStep;}
         
-        if(targetStep_ > currentStep_){
+        if(targetStep_ >= currentStep_){
             ESP_RETURN_ON_ERROR(startMovement(MotorState::UP, 1), TAG, "Failed starting upward movement");
             ESP_LOGI(TAG, " UP");
         }
-        else if(targetStep_ < currentStep_ || isCalibrating){
+        else if(targetStep_ <= currentStep_ || isCalibrating){
             ESP_RETURN_ON_ERROR(startMovement(MotorState::DOWN, 0), TAG, "Failed starting downward movement");
             ESP_LOGI(TAG, " DOWN");
         }
