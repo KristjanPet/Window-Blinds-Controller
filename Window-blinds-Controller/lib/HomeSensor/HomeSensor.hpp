@@ -15,12 +15,12 @@ private:
     const gpio_num_t pin_;
     BlindsCommandQueue& commandQueue_;
     uint32_t droppedEvents_ = 0;
-    bool activeAtInit_ = false;
+    bool workingAtInit_ = false;
 
     static void IRAM_ATTR sensorIsr(void* arg);
 
 public:
     HomeSensor(gpio_num_t pin, BlindsCommandQueue& commandQueue);
     esp_err_t init();
-    bool wasActiveAtInit() const;
+    esp_err_t sensorCheck();
 };

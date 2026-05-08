@@ -6,7 +6,8 @@
 
 enum class BlindsState{
     IDLE,
-    CALIBRATING,
+    CALIBRATING_HOME,
+    CALIBRATING_MAX,
     MOVING_UP,
     MOVING_DOWN,
     FAULT

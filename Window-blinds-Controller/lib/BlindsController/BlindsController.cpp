@@ -34,7 +34,7 @@ esp_err_t BlindsController::handleCommand(BlindsEvent cmd){
         break;
     case BlindsEvent::CALIBRATE:
         if(state_ != BlindsState::FAULT){ 
-            state_ = BlindsState::CALIBRATING;
+            state_ = BlindsState::CALIBRATING_HOME;
             err = motor_.move(0, true);
             if(err == ESP_OK ){
                 ESP_LOGI(TAG, "Moving to HOME");
@@ -62,35 +62,38 @@ esp_err_t BlindsController::handleCommand(BlindsEvent cmd){
         } 
         break;
     case BlindsEvent::STALL_DETECTED:
-        if (state_ == BlindsState::CALIBRATING){
+        if (state_ == BlindsState::CALIBRATING_MAX){
             err = motor_.stop();
             if(err == ESP_OK ){
                 if(state_ != BlindsState::FAULT){
                     motor_.setMaxStep(AppConfig::offsetOfMaxStep);
                     motor_.move(-1);
                     state_ = BlindsState::IDLE;
+                    ESP_LOGI(TAG, "Calibration complete");
                 } else{ 
                     ESP_LOGE(TAG, "Blinds state is FAULT");
                 }
             } else{
-                    ESP_LOGE(TAG, "Error sending command: %s", esp_err_to_name(err));
+                ESP_LOGE(TAG, "Error sending command: %s", esp_err_to_name(err));
             }
         }
         else if(state_ == BlindsState::MOVING_UP || state_ == BlindsState::MOVING_DOWN){
             //TODO normal stall detected
+            ESP_LOGI(TAG, "STALL_DETECTED");
         }
         else{
-            // ESP_LOGE(TAG, "Stall detected unexpectedly");
+            ESP_LOGE(TAG, "Stall detected unexpectedly");
         }
         break;
     case BlindsEvent::HOMING_REACHED:    
         ESP_LOGI(TAG, "HOMING REACHED");
         err = motor_.stop();
         if(err == ESP_OK ){
-            if(state_ == BlindsState::CALIBRATING){
+            if(state_ == BlindsState::CALIBRATING_HOME){
                 motor_.setHoming(AppConfig::offsetOfMinStep);
                 vTaskDelay(pdMS_TO_TICKS(200));
-                motor_.move(-1);
+                motor_.move(-1); //TODO add err
+                state_ = BlindsState::CALIBRATING_MAX;
             }
             else{
                 // state_ = BlindsState::FAULT;
@@ -133,6 +136,18 @@ esp_err_t BlindsController::handleCommand(BlindsEvent cmd){
             ESP_LOGE(TAG, "Blinds state is FAULT");
             err = ESP_ERR_INVALID_STATE;
         }
+        break;
+    case BlindsEvent::HOMING_CHECK:
+        motor_.setHoming();
+        err = motor_.move(-1);
+        if(err != ESP_OK) state_ = BlindsState::FAULT;
+        vTaskDelay(pdMS_TO_TICKS(400));
+        err = motor_.stop();
+        if(err != ESP_OK) state_ = BlindsState::FAULT;
+        break;
+    case BlindsEvent::FAULT:
+        state_ = BlindsState::FAULT;
+        ESP_LOGE(TAG, "Blinds state is FAULT");
         break;
     default:
         err = ESP_ERR_INVALID_ARG;

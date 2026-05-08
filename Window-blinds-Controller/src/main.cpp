@@ -38,7 +38,7 @@ extern "C" void app_main(void) {
         esp_restart();
     };
 
-    MotorController motor(AppConfig::motorPins, commandsQueue);
+    MotorController motor(AppConfig::motorPins, commandsQueue); //TODO add consistant err check
     if(motor.init() != ESP_OK){
         esp_restart();
     };
@@ -65,8 +65,17 @@ extern "C" void app_main(void) {
         esp_restart();
     }
 
+    vTaskDelay(pdMS_TO_TICKS(500));
+    ESP_LOGI(TAG_MAIN, "Init complete, checking sensor....");
+
+    err = homeSensor.sensorCheck();
+    if(err != ESP_OK){
+        ESP_LOGE(TAG_MAIN, "Homing sensor check failed: %s", esp_err_to_name(err));
+        esp_restart();
+    };
+
     vTaskDelay(pdMS_TO_TICKS(1000));
-    ESP_LOGI(TAG_MAIN, "Init complete, calibrating blinds....");
+    ESP_LOGI(TAG_MAIN, "calibrating blinds....");
 
     if(commandsQueue.send(BlindsEvent::CALIBRATE) != pdTRUE){
         ESP_LOGE(TAG_MAIN, "Failed to start calibrating, restarting...");

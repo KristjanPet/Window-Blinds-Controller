@@ -8,7 +8,9 @@ enum class BlindsEvent{
     CALIBRATE,
     LIMIT_REACHED,
     HOMING_REACHED,
-    STALL_DETECTED
+    HOMING_CHECK,
+    STALL_DETECTED,
+    FAULT
 };
 
 struct MotorPins{
