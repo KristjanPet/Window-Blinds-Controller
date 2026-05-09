@@ -53,6 +53,9 @@ esp_err_t HomeSensor::sensorCheck(){
             ESP_RETURN_ON_ERROR(gpio_isr_handler_add(pin_, sensorIsr, this), TAG, "Failed to add home sensor ISR handler");
         }
     }
+    else{
+        ESP_RETURN_ON_ERROR(gpio_isr_handler_add(pin_, sensorIsr, this), TAG, "Failed to add home sensor ISR handler");
+    }
 
     return ESP_OK;
 }
