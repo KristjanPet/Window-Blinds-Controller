@@ -17,8 +17,9 @@ namespace AppConfig{
     static_assert(rampStepInterval > 0, "rampStepInterval must be greater than zero");
 
     //Blinds settings
-    constexpr uint32_t offsetOfMaxStep = 800; //offset from stall detected
-    constexpr uint32_t offsetOfMinStep = 800; //offset from home detected
+    constexpr int32_t offsetOfMaxStep = 800; //offset from stall detected
+    constexpr int32_t offsetOfMinStep = 800; //offset from home detected
+    constexpr int32_t stepStallThrehold = 1000 * 63;
     static_assert(offsetOfMaxStep > 0, "offsetOfMaxStep must be greater than zero");
     static_assert(offsetOfMinStep > 0, "offsetOfMinStep must be greater than zero");
 

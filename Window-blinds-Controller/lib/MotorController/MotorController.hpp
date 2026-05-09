@@ -46,4 +46,5 @@ public:
     esp_err_t stop() override;
     void setHoming(int32_t offset = 0) override;
     void setMaxStep(int32_t offset = 0) override;
+    int32_t getCurrentStep() const override;
 };

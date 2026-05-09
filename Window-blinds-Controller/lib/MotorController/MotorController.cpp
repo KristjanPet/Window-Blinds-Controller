@@ -210,3 +210,7 @@ void MotorController::setHoming(int32_t offset){
 void MotorController::setMaxStep(int32_t offset){
     maxStep_ = currentStep_ - offset;
 }
+
+int32_t MotorController::getCurrentStep() const{
+    return currentStep_;
+}

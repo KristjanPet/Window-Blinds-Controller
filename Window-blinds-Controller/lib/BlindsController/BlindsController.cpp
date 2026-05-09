@@ -61,8 +61,9 @@ esp_err_t BlindsController::handleCommand(BlindsEvent cmd){
             ESP_LOGI(TAG, "LIMIT REACHED");
         } 
         break;
-    case BlindsEvent::STALL_DETECTED:
-        if (state_ == BlindsState::CALIBRATING_MAX){
+    case BlindsEvent::STALL_DETECTED: {
+        int32_t currentStep = motor_.getCurrentStep();
+        if (state_ == BlindsState::CALIBRATING_MAX && currentStep > AppConfig::stepStallThrehold){
             err = motor_.stop();
             if(err == ESP_OK ){
                 if(state_ != BlindsState::FAULT){
@@ -85,15 +86,16 @@ esp_err_t BlindsController::handleCommand(BlindsEvent cmd){
             ESP_LOGE(TAG, "Stall detected unexpectedly");
         }
         break;
+    }
     case BlindsEvent::HOMING_REACHED:    
         ESP_LOGI(TAG, "HOMING REACHED");
         err = motor_.stop();
         if(err == ESP_OK ){
             if(state_ == BlindsState::CALIBRATING_HOME){
                 motor_.setHoming(AppConfig::offsetOfMinStep);
+                state_ = BlindsState::CALIBRATING_MAX;
                 vTaskDelay(pdMS_TO_TICKS(200));
                 motor_.move(-1); //TODO add err
-                state_ = BlindsState::CALIBRATING_MAX;
             }
             else{
                 // state_ = BlindsState::FAULT;
