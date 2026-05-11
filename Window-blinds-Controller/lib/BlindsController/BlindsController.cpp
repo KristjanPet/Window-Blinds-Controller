@@ -23,7 +23,7 @@ esp_err_t BlindsController::handleCommand(BlindsEvent cmd){
     case BlindsEvent::STOP:
         err = motor_.stop();
         if(err == ESP_OK ){
-            if(state_ != BlindsState::FAULT){
+            if(state_ != BlindsState::FAULT){ //TODO if stoped while calibrating should it be fault?
                 state_ = BlindsState::IDLE;
             } else{ 
                 ESP_LOGE(TAG, "Blinds state is FAULT");
