@@ -34,16 +34,18 @@ esp_err_t BlindsController::handleCommand(BlindsEvent cmd){
         break;
     case BlindsEvent::CALIBRATE:
         if(state_ != BlindsState::FAULT){ 
-            state_ = BlindsState::CALIBRATING_HOME;
             err = motor_.move(0, true);
             if(err == ESP_OK ){
+                state_ = BlindsState::CALIBRATING_HOME;
                 ESP_LOGI(TAG, "Moving to HOME");
             } else{
+                state_ = BlindsState::FAULT;
                 ESP_LOGE(TAG, "Error sending command: %s", esp_err_to_name(err));
             }
         }
         else{
             ESP_LOGE(TAG, "Blinds state is FAULT");
+            err = ESP_ERR_INVALID_STATE;
         }
         break;
     case BlindsEvent::LIMIT_REACHED:
@@ -68,9 +70,14 @@ esp_err_t BlindsController::handleCommand(BlindsEvent cmd){
             if(err == ESP_OK ){
                 if(state_ != BlindsState::FAULT){
                     motor_.setMaxStep(AppConfig::offsetOfMaxStep);
-                    motor_.move(-1);
-                    state_ = BlindsState::IDLE;
-                    ESP_LOGI(TAG, "Calibration complete");
+                    err = motor_.move(-1);
+                    if(err == ESP_OK){
+                        state_ = BlindsState::IDLE;
+                        ESP_LOGI(TAG, "Calibration complete");
+                    } else{
+                        state_ = BlindsState::FAULT;
+                        ESP_LOGE(TAG, "Error backing away from max limit: %s", esp_err_to_name(err));
+                    }
                 } else{ 
                     ESP_LOGE(TAG, "Blinds state is FAULT");
                 }
@@ -93,9 +100,14 @@ esp_err_t BlindsController::handleCommand(BlindsEvent cmd){
         if(err == ESP_OK ){
             if(state_ == BlindsState::CALIBRATING_HOME){
                 motor_.setHoming(AppConfig::offsetOfMinStep);
-                state_ = BlindsState::CALIBRATING_MAX;
                 vTaskDelay(pdMS_TO_TICKS(200));
-                motor_.move(-1); //TODO add err
+                err = motor_.move(-1);
+                if(err == ESP_OK){
+                    state_ = BlindsState::CALIBRATING_MAX;
+                } else{
+                    state_ = BlindsState::FAULT;
+                    ESP_LOGE(TAG, "Error moving to max during calibration: %s", esp_err_to_name(err));
+                }
             }
             else{
                 // state_ = BlindsState::FAULT;
