@@ -7,13 +7,14 @@ ButtonHandler::ButtonHandler(const ButtonPins& pins, BlindsCommandQueue& command
 
 void IRAM_ATTR ButtonHandler::buttonIsr(void *arg){
     ButtonIsrContext *ctx = static_cast<ButtonIsrContext*>(arg);
+    if(!ctx || !ctx->self){
+        return;
+    }
 
     BaseType_t hpTaskWoken = pdFALSE;
     ButtonPressed btn = ctx->button;
 
-    xQueueSendFromISR(ctx->self->buttonQueue_, &btn, &hpTaskWoken);
-
-    if(hpTaskWoken){
+    if(xQueueSendFromISR(ctx->self->buttonQueue_, &btn, &hpTaskWoken) == pdTRUE && hpTaskWoken){
         portYIELD_FROM_ISR();
     }
 }

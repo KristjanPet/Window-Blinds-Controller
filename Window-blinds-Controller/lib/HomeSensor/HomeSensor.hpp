@@ -14,7 +14,6 @@ class HomeSensor{
 private:
     const gpio_num_t pin_;
     BlindsCommandQueue& commandQueue_;
-    uint32_t droppedEvents_ = 0;
     bool workingAtInit_ = false;
 
     static void IRAM_ATTR sensorIsr(void* arg);

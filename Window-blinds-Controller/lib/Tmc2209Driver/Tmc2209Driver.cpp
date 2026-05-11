@@ -26,6 +26,7 @@ void IRAM_ATTR Tmc2209Driver::diagIsr(void* arg){
     BaseType_t hpTaskWoken = pdFALSE;
     BlindsEvent cmd = BlindsEvent::STALL_DETECTED;
     self->commandsQueue_.sendFromISR(cmd, &hpTaskWoken);
+
     if (hpTaskWoken) {
         portYIELD_FROM_ISR();
     }

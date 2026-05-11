@@ -15,10 +15,7 @@ void IRAM_ATTR HomeSensor::sensorIsr(void* arg){
 
     BaseType_t hpTaskWoken = pdFALSE;
     BlindsEvent event = BlindsEvent::HOMING_REACHED;
-    BaseType_t sent = self->commandQueue_.sendFromISR(event, &hpTaskWoken);
-    if(sent != pdTRUE){
-        self->droppedEvents_++;
-    }
+    self->commandQueue_.sendFromISR(event, &hpTaskWoken);
 
     if(hpTaskWoken){
         portYIELD_FROM_ISR();
@@ -41,13 +38,20 @@ esp_err_t HomeSensor::init(){
 esp_err_t HomeSensor::sensorCheck(){
     workingAtInit_ = (gpio_get_level(pin_) == 1);
     if(workingAtInit_){ //sensor active or not working
-        commandQueue_.send(BlindsEvent::HOMING_CHECK);
+        if(commandQueue_.send(BlindsEvent::HOMING_CHECK) != pdTRUE){
+            ESP_LOGE(TAG, "Failed to send homing check event");
+            return ESP_FAIL;
+        }
         vTaskDelay(pdMS_TO_TICKS(500));
         workingAtInit_ = (gpio_get_level(pin_) == 1);
 
-        if(workingAtInit_){ //TODO needs fix probably schmit trigger
-            commandQueue_.send(BlindsEvent::FAULT);
+        if(workingAtInit_){ 
+            if(commandQueue_.send(BlindsEvent::FAULT) != pdTRUE){
+                ESP_LOGE(TAG, "Failed to send homing fault event");
+                return ESP_FAIL;
+            }
             ESP_LOGE(TAG, "Homing senzor not working");
+            return ESP_ERR_INVALID_STATE;
         }
         else{
             ESP_RETURN_ON_ERROR(gpio_isr_handler_add(pin_, sensorIsr, this), TAG, "Failed to add home sensor ISR handler");
