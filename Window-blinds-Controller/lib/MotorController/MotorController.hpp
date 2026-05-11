@@ -25,6 +25,7 @@ private:
     int32_t maxStep_ = INT_MAX;
     int32_t targetStep_ = 0;
     volatile bool softLimitHit_ = false;
+    bool timerRunning_ = false;
     uint32_t currentTogglePeriodUs_ = AppConfig::StartTogglePeriodUs;
     uint32_t rampStepCounter_ = 0;
 
@@ -38,6 +39,7 @@ private:
     static esp_err_t IRAM_ATTR setAlarmAt(gptimer_handle_t timer, uint64_t alarmCount);
     void resetRamp();
     void updateRampAfterStep();
+    esp_err_t stopTimerIfRunning();
     esp_err_t startMovement(MotorState state, uint32_t dirLevel);
 public:
     MotorController(const MotorPins& pins, BlindsCommandQueue& commandsQueue);

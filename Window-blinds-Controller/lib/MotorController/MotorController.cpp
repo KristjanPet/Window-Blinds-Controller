@@ -33,6 +33,19 @@ void MotorController::updateRampAfterStep(){
     currentTogglePeriodUs_--;
 }
 
+esp_err_t MotorController::stopTimerIfRunning(){
+    if(!timerRunning_){
+        return ESP_OK;
+    }
+
+    esp_err_t err = gptimer_stop(timer_);
+    if(err == ESP_OK){
+        timerRunning_ = false;
+    }
+
+    return err;
+}
+
 bool IRAM_ATTR MotorController::stepTimerCallback( gptimer_handle_t timer, const gptimer_alarm_event_data_t *edata, void *user_ctx){
     auto *self = static_cast<MotorController*>(user_ctx);
     if (!self || !timer || !edata) {
@@ -130,7 +143,7 @@ esp_err_t MotorController::init(){
 }
 
 esp_err_t MotorController::stop(){
-    ESP_RETURN_ON_ERROR(gptimer_stop(timer_), TAG, "Failed to stop gptimer");
+    ESP_RETURN_ON_ERROR(stopTimerIfRunning(), TAG, "Failed to stop gptimer");
 
     int32_t getStep = 0;
     esp_err_t stepRet = ESP_OK;
@@ -151,7 +164,7 @@ esp_err_t MotorController::stop(){
 }
 
 esp_err_t MotorController::startMovement(MotorState state, uint32_t dirLevel){
-    ESP_RETURN_ON_ERROR(gptimer_stop(timer_), TAG, "Failed stopping gptimer before start");
+    ESP_RETURN_ON_ERROR(stopTimerIfRunning(), TAG, "Failed stopping gptimer before start");
 
     taskENTER_CRITICAL(&motorStepMux_);
     motorState_ = MotorState::STOPPED;
@@ -176,6 +189,7 @@ esp_err_t MotorController::startMovement(MotorState state, uint32_t dirLevel){
         taskEXIT_CRITICAL(&motorStepMux_);
         ESP_RETURN_ON_ERROR(startRet, TAG, "Failed starting gptimer");
     }
+    timerRunning_ = true;
 
     return ESP_OK;
 }
