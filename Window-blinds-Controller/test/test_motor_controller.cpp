@@ -106,7 +106,7 @@ void test_limit_reached_stops_and_sets_idle(void){
     TEST_ASSERT_EQUAL(LastAction::STOP, fMotor.getLastAction());
 }
 
-void test_limit_reached_stop_failure_keeps_state(void){
+void test_limit_reached_stop_failure_enters_fault(void){
     FakeMotor fMotor;
     BlindsCommandQueue queue;
     BlindsController blinds(fMotor, queue);
@@ -115,7 +115,7 @@ void test_limit_reached_stop_failure_keeps_state(void){
     fMotor.setNextResult(ESP_ERR_INVALID_ARG);
 
     TEST_ASSERT_EQUAL(ESP_ERR_INVALID_ARG, blinds.handleCommand(BlindsEvent::LIMIT_REACHED));
-    TEST_ASSERT_EQUAL(BlindsState::MOVING_UP, blinds.getState());
+    TEST_ASSERT_EQUAL(BlindsState::FAULT, blinds.getState());
     TEST_ASSERT_EQUAL(LastAction::STOP, fMotor.getLastAction());
 }
 
@@ -228,7 +228,7 @@ extern "C" void app_main(void) {
     RUN_TEST(test_normal_stop_while_moving_up);
     RUN_TEST(test_stop_failure_while_moving_up);
     RUN_TEST(test_limit_reached_stops_and_sets_idle);
-    RUN_TEST(test_limit_reached_stop_failure_keeps_state);
+    RUN_TEST(test_limit_reached_stop_failure_enters_fault);
     RUN_TEST(test_move_up_failure_from_idle);
     RUN_TEST(test_move_down_failure_from_idle);
     RUN_TEST(test_calibrate_move_failure_enters_fault);
