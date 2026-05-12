@@ -45,6 +45,7 @@ public:
     MotorController(const MotorPins& pins, BlindsCommandQueue& commandsQueue);
     esp_err_t init();
     esp_err_t move(int32_t targetStep, bool isCalibrating = false) override;
+    esp_err_t moveToMax() override;
     esp_err_t stop() override;
     void setHoming(int32_t offset = 0) override;
     void setMaxStep(int32_t offset = 0) override;

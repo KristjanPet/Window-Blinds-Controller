@@ -71,7 +71,7 @@ esp_err_t BlindsController::handleCommand(BlindsEvent cmd){
             if(err == ESP_OK ){
                 if(state_ != BlindsState::FAULT){
                     motor_.setMaxStep(AppConfig::offsetOfMaxStep);
-                    err = motor_.move(-1);
+                    err = motor_.moveToMax();
                     if(err == ESP_OK){
                         state_ = BlindsState::IDLE;
                         ESP_LOGI(TAG, "Calibration complete");
@@ -103,7 +103,7 @@ esp_err_t BlindsController::handleCommand(BlindsEvent cmd){
             if(state_ == BlindsState::CALIBRATING_HOME){
                 motor_.setHoming(AppConfig::offsetOfMinStep);
                 vTaskDelay(pdMS_TO_TICKS(200));
-                err = motor_.move(-1);
+                err = motor_.moveToMax();
                 if(err == ESP_OK){
                     state_ = BlindsState::CALIBRATING_MAX;
                 } else{
@@ -127,7 +127,7 @@ esp_err_t BlindsController::handleCommand(BlindsEvent cmd){
                 if(err == ESP_OK) state_ = BlindsState::IDLE;
             }
             else{
-                err = motor_.move(-1);
+                err = motor_.moveToMax();
                 if(err == ESP_OK) state_ = BlindsState::MOVING_UP;
             }
             if(err != ESP_OK) ESP_LOGE(TAG, "Error sending command: %s", esp_err_to_name(err));
@@ -156,7 +156,7 @@ esp_err_t BlindsController::handleCommand(BlindsEvent cmd){
         break;
     case BlindsEvent::HOMING_CHECK:
         motor_.setHoming();
-        err = motor_.move(-1);
+        err = motor_.moveToMax();
         if(err != ESP_OK) state_ = BlindsState::FAULT;
         vTaskDelay(pdMS_TO_TICKS(400));
         err = motor_.stop();

@@ -196,25 +196,26 @@ esp_err_t MotorController::startMovement(MotorState state, uint32_t dirLevel){
 
 esp_err_t MotorController::move(int32_t targetStep, bool isCalibrating ){
 
-    if(targetStep < maxStep_ || targetStep >= -1){
-        if(targetStep == -1){
-            targetStep_ = maxStep_;
-        } else {targetStep_ = targetStep;}
-        
-        if(targetStep_ >= currentStep_){
-            ESP_RETURN_ON_ERROR(startMovement(MotorState::UP, 1), TAG, "Failed starting upward movement");
-            ESP_LOGI(TAG, " UP");
-        }
-        else if(targetStep_ <= currentStep_ || isCalibrating){
-            ESP_RETURN_ON_ERROR(startMovement(MotorState::DOWN, 0), TAG, "Failed starting downward movement");
-            ESP_LOGI(TAG, " DOWN");
-        }
-    }
-    else{
+    if(targetStep < 0 || targetStep > maxStep_){
         return ESP_ERR_INVALID_ARG;
     }
 
+    targetStep_ = targetStep;
+
+    if(targetStep_ >= currentStep_){
+        ESP_RETURN_ON_ERROR(startMovement(MotorState::UP, 1), TAG, "Failed starting upward movement");
+        ESP_LOGI(TAG, " UP");
+    }
+    else if(targetStep_ <= currentStep_ || isCalibrating){
+        ESP_RETURN_ON_ERROR(startMovement(MotorState::DOWN, 0), TAG, "Failed starting downward movement");
+        ESP_LOGI(TAG, " DOWN");
+    }
+
     return ESP_OK;
+}
+
+esp_err_t MotorController::moveToMax(){
+    return move(maxStep_);
 }
 
 void MotorController::setHoming(int32_t offset){
