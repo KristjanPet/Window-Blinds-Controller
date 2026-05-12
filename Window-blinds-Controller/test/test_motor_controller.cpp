@@ -1,8 +1,11 @@
 #include <unity.h>
+#include <climits>
 
 #include "fakes/FakeMotor.hpp"
+#include "AppConfig.hpp"
 #include "BlindsController.hpp"
 #include "BlindsCommandQueue.hpp"
+#include "MotorController.hpp"
 
 void setUp(void) {}
 void tearDown(void) {}
@@ -15,6 +18,7 @@ void test_motor_moving_up(void){
     TEST_ASSERT_EQUAL(ESP_OK, blinds.handleCommand(BlindsEvent::UP));
     TEST_ASSERT_EQUAL(BlindsState::MOVING_UP, blinds.getState());
     TEST_ASSERT_EQUAL(LastAction::UP, fMotor.getLastAction());
+    TEST_ASSERT_EQUAL_UINT32(1, fMotor.getMoveToMaxCalls());
 }
 
 void test_motor_moving_down(void){
@@ -25,6 +29,7 @@ void test_motor_moving_down(void){
     TEST_ASSERT_EQUAL(ESP_OK, blinds.handleCommand(BlindsEvent::DOWN));
     TEST_ASSERT_EQUAL(BlindsState::MOVING_DOWN, blinds.getState());
     TEST_ASSERT_EQUAL(LastAction::DOWN, fMotor.getLastAction());
+    TEST_ASSERT_EQUAL(0, fMotor.getLastTargetStep());
 }
 
 void test_same_button_toggle_up(void){
@@ -129,6 +134,7 @@ void test_move_up_failure_from_idle(void){
     TEST_ASSERT_EQUAL(ESP_ERR_INVALID_ARG, blinds.handleCommand(BlindsEvent::UP));
     TEST_ASSERT_EQUAL(BlindsState::IDLE, blinds.getState());
     TEST_ASSERT_EQUAL(LastAction::UP, fMotor.getLastAction());
+    TEST_ASSERT_EQUAL_UINT32(1, fMotor.getMoveToMaxCalls());
 }
 
 void test_move_down_failure_from_idle(void){
@@ -153,6 +159,8 @@ void test_calibrate_move_failure_enters_fault(void){
     TEST_ASSERT_EQUAL(ESP_ERR_INVALID_STATE, blinds.handleCommand(BlindsEvent::CALIBRATE));
     TEST_ASSERT_EQUAL(BlindsState::FAULT, blinds.getState());
     TEST_ASSERT_EQUAL(LastAction::DOWN, fMotor.getLastAction());
+    TEST_ASSERT_EQUAL(0, fMotor.getLastTargetStep());
+    TEST_ASSERT_TRUE(fMotor.wasLastMoveCalibrating());
 }
 
 void test_homing_reached_move_to_max_failure_enters_fault(void){
@@ -216,6 +224,22 @@ void test_blinds_state_fault_limit_reached(void){
     TEST_ASSERT_EQUAL(LastAction::NONE, fMotor.getLastAction());
 }
 
+void test_motor_rejects_negative_concrete_target(void){
+    BlindsCommandQueue queue;
+    MotorController motor(AppConfig::motorPins, queue);
+
+    TEST_ASSERT_EQUAL(ESP_ERR_INVALID_ARG, motor.move(-1));
+}
+
+void test_motor_rejects_target_above_configured_max(void){
+    BlindsCommandQueue queue;
+    MotorController motor(AppConfig::motorPins, queue);
+
+    motor.setMaxStep(AppConfig::offsetOfMaxStep);
+
+    TEST_ASSERT_EQUAL(ESP_ERR_INVALID_ARG, motor.move(INT_MAX));
+}
+
 extern "C" void app_main(void) {
     UNITY_BEGIN();
 
@@ -237,6 +261,8 @@ extern "C" void app_main(void) {
     RUN_TEST(test_blinds_state_fault_down);
     RUN_TEST(test_blinds_state_fault_stop);
     RUN_TEST(test_blinds_state_fault_limit_reached);
+    RUN_TEST(test_motor_rejects_negative_concrete_target);
+    RUN_TEST(test_motor_rejects_target_above_configured_max);
 
     UNITY_END();
 }
