@@ -23,7 +23,7 @@ esp_err_t BlindsController::handleCommand(BlindsEvent cmd){
     case BlindsEvent::STOP:
         err = motor_.stop();
         if(err == ESP_OK ){
-            if(state_ != BlindsState::FAULT){ //TODO if stoped while calibrating should it be fault?
+            if(state_ != BlindsState::FAULT){
                 state_ = BlindsState::IDLE;
             } else{ 
                 ESP_LOGE(TAG, "Blinds state is FAULT");
@@ -126,6 +126,11 @@ esp_err_t BlindsController::handleCommand(BlindsEvent cmd){
                 err = motor_.stop();
                 if(err == ESP_OK) state_ = BlindsState::IDLE;
             }
+            else if(state_ == BlindsState::CALIBRATING_HOME || state_ == BlindsState::CALIBRATING_MAX){
+                err = motor_.stop();
+                ESP_LOGE(TAG, "Blinds state set to FAULT");
+                state_ = BlindsState::FAULT;
+            }
             else{
                 err = motor_.moveToMax();
                 if(err == ESP_OK) state_ = BlindsState::MOVING_UP;
@@ -142,6 +147,11 @@ esp_err_t BlindsController::handleCommand(BlindsEvent cmd){
             if(state_ == BlindsState::MOVING_DOWN || state_ == BlindsState::MOVING_UP){   
                 err = motor_.stop();
                 if(err == ESP_OK) state_ = BlindsState::IDLE;
+            }
+            else if(state_ == BlindsState::CALIBRATING_HOME || state_ == BlindsState::CALIBRATING_MAX){
+                err = motor_.stop();
+                ESP_LOGE(TAG, "Blinds state set to FAULT");
+                state_ = BlindsState::FAULT;
             }
             else{
                 err = motor_.move(0);
