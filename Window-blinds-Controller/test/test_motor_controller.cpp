@@ -176,6 +176,54 @@ void test_homing_reached_move_to_max_failure_enters_fault(void){
     TEST_ASSERT_EQUAL(LastAction::UP, fMotor.getLastAction());
 }
 
+void test_up_during_home_calibration_stops_and_enters_fault(void){
+    FakeMotor fMotor;
+    BlindsCommandQueue queue;
+    BlindsController blinds(fMotor, queue);
+
+    blinds.setState(BlindsState::CALIBRATING_HOME);
+
+    TEST_ASSERT_EQUAL(ESP_OK, blinds.handleCommand(BlindsEvent::UP));
+    TEST_ASSERT_EQUAL(BlindsState::FAULT, blinds.getState());
+    TEST_ASSERT_EQUAL(LastAction::STOP, fMotor.getLastAction());
+}
+
+void test_up_during_max_calibration_stops_and_enters_fault(void){
+    FakeMotor fMotor;
+    BlindsCommandQueue queue;
+    BlindsController blinds(fMotor, queue);
+
+    blinds.setState(BlindsState::CALIBRATING_MAX);
+
+    TEST_ASSERT_EQUAL(ESP_OK, blinds.handleCommand(BlindsEvent::UP));
+    TEST_ASSERT_EQUAL(BlindsState::FAULT, blinds.getState());
+    TEST_ASSERT_EQUAL(LastAction::STOP, fMotor.getLastAction());
+}
+
+void test_down_during_home_calibration_stops_and_enters_fault(void){
+    FakeMotor fMotor;
+    BlindsCommandQueue queue;
+    BlindsController blinds(fMotor, queue);
+
+    blinds.setState(BlindsState::CALIBRATING_HOME);
+
+    TEST_ASSERT_EQUAL(ESP_OK, blinds.handleCommand(BlindsEvent::DOWN));
+    TEST_ASSERT_EQUAL(BlindsState::FAULT, blinds.getState());
+    TEST_ASSERT_EQUAL(LastAction::STOP, fMotor.getLastAction());
+}
+
+void test_down_during_max_calibration_stops_and_enters_fault(void){
+    FakeMotor fMotor;
+    BlindsCommandQueue queue;
+    BlindsController blinds(fMotor, queue);
+
+    blinds.setState(BlindsState::CALIBRATING_MAX);
+
+    TEST_ASSERT_EQUAL(ESP_OK, blinds.handleCommand(BlindsEvent::DOWN));
+    TEST_ASSERT_EQUAL(BlindsState::FAULT, blinds.getState());
+    TEST_ASSERT_EQUAL(LastAction::STOP, fMotor.getLastAction());
+}
+
 void test_blinds_state_fault_up(void){
     FakeMotor fMotor;
     BlindsCommandQueue queue;
@@ -257,6 +305,10 @@ extern "C" void app_main(void) {
     RUN_TEST(test_move_down_failure_from_idle);
     RUN_TEST(test_calibrate_move_failure_enters_fault);
     RUN_TEST(test_homing_reached_move_to_max_failure_enters_fault);
+    RUN_TEST(test_up_during_home_calibration_stops_and_enters_fault);
+    RUN_TEST(test_up_during_max_calibration_stops_and_enters_fault);
+    RUN_TEST(test_down_during_home_calibration_stops_and_enters_fault);
+    RUN_TEST(test_down_during_max_calibration_stops_and_enters_fault);
     RUN_TEST(test_blinds_state_fault_up);
     RUN_TEST(test_blinds_state_fault_down);
     RUN_TEST(test_blinds_state_fault_stop);
