@@ -9,7 +9,8 @@ BlindsController::BlindsController(IMotor& motor, BlindsCommandQueue& commandQue
 
 void BlindsController::resetNormalStallRecovery(){
     normalStallRecoveries_ = 0;
-    activeTarget_ = BlindsTarget::NONE;
+    activeTargetStep_ = 0;
+    hasActiveTarget_ = false;
 }
 
 esp_err_t BlindsController::retryStallRecoveryTarget(){
@@ -19,25 +20,17 @@ esp_err_t BlindsController::retryStallRecoveryTarget(){
         ESP_LOGE(TAG, "Error stopping stall recovery before retry: %s", esp_err_to_name(err));
         return err;
     }
-    vTaskDelay(pdMS_TO_TICKS(400));
+    vTaskDelay(pdMS_TO_TICKS(200));
 
-    switch(activeTarget_){
-    case BlindsTarget::MAX:
-        err = motor_.moveToMax();
-        if(err == ESP_OK){
-            state_ = BlindsState::MOVING_UP;
-        }
-        break;
-    case BlindsTarget::MIN:
-        err = motor_.move(0);
-        if(err == ESP_OK){
-            state_ = BlindsState::MOVING_DOWN;
-        }
-        break;
-    case BlindsTarget::NONE:
-    default:
+    const int32_t maxStep = motor_.getMaxStep();
+    if(!hasActiveTarget_ || activeTargetStep_ < 0 || activeTargetStep_ > maxStep){
         err = ESP_ERR_INVALID_STATE;
-        break;
+    } else{
+        const int32_t currentStep = motor_.getCurrentStep();
+        err = motor_.move(activeTargetStep_);
+        if(err == ESP_OK){
+            state_ = activeTargetStep_ >= currentStep ? BlindsState::MOVING_UP : BlindsState::MOVING_DOWN;
+        }
     }
 
     if(err != ESP_OK){
@@ -50,10 +43,11 @@ esp_err_t BlindsController::retryStallRecoveryTarget(){
 
 esp_err_t BlindsController::handleNormalStall(int32_t currentStep){
     const BlindsState stalledState = state_;
-    BlindsTarget target = activeTarget_;
+    int32_t targetStep = activeTargetStep_;
+    const int32_t maxStep = motor_.getMaxStep();
 
-    if(target == BlindsTarget::NONE){
-        target = stalledState == BlindsState::MOVING_UP ? BlindsTarget::MAX : BlindsTarget::MIN;
+    if(!hasActiveTarget_){
+        targetStep = stalledState == BlindsState::MOVING_UP ? maxStep : 0;
     }
 
     esp_err_t err = motor_.stop();
@@ -63,9 +57,19 @@ esp_err_t BlindsController::handleNormalStall(int32_t currentStep){
         return err;
     }
 
+    if(maxStep < 0 || targetStep < 0 || targetStep > maxStep){
+        state_ = BlindsState::FAULT;
+        activeTargetStep_ = targetStep;
+        hasActiveTarget_ = true;
+        ESP_LOGE(TAG, "Invalid target during stall recovery: target=%d max=%d",
+                 targetStep, maxStep);
+        return ESP_ERR_INVALID_STATE;
+    }
+
     if(normalStallRecoveries_ >= AppConfig::normalStallMaxRecoveries){
         state_ = BlindsState::FAULT;
-        activeTarget_ = target;
+        activeTargetStep_ = targetStep;
+        hasActiveTarget_ = true;
         ESP_LOGE(TAG, "Normal stall recovery failed after %u tries",
                  static_cast<unsigned>(normalStallRecoveries_));
         return ESP_ERR_INVALID_STATE;
@@ -78,13 +82,6 @@ esp_err_t BlindsController::handleNormalStall(int32_t currentStep){
         }
     }
     else{
-        const int32_t maxStep = motor_.getMaxStep();
-        if(maxStep < 0){
-            state_ = BlindsState::FAULT;
-            activeTarget_ = target;
-            ESP_LOGE(TAG, "Invalid max step during stall recovery: %d", maxStep);
-            return ESP_ERR_INVALID_STATE;
-        }
         backoffTarget = maxStep;
         if(currentStep <= maxStep - AppConfig::normalStallBackoffSteps){
             backoffTarget = currentStep + AppConfig::normalStallBackoffSteps;
@@ -93,12 +90,14 @@ esp_err_t BlindsController::handleNormalStall(int32_t currentStep){
 
     if(backoffTarget == currentStep){
         state_ = BlindsState::FAULT;
-        activeTarget_ = target;
+        activeTargetStep_ = targetStep;
+        hasActiveTarget_ = true;
         ESP_LOGE(TAG, "Stall recovery backoff target equals current position: %d", currentStep);
         return ESP_ERR_INVALID_STATE;
     }
 
-    activeTarget_ = target;
+    activeTargetStep_ = targetStep;
+    hasActiveTarget_ = true;
     err = motor_.move(backoffTarget);
     if(err == ESP_OK){
         normalStallRecoveries_++;
@@ -177,7 +176,7 @@ esp_err_t BlindsController::handleCommand(BlindsEvent cmd){
             ESP_LOGI(TAG, "LIMIT REACHED");
         } 
         break;
-    case BlindsEvent::STALL_DETECTED: {
+    case BlindsEvent::STALL_DETECTED: { //TODO add stall detected before calibration completed
         int32_t currentStep = motor_.getCurrentStep();
         if (state_ == BlindsState::CALIBRATING_MAX && currentStep > AppConfig::stepStallThrehold){
             err = motor_.stop();
@@ -251,7 +250,8 @@ esp_err_t BlindsController::handleCommand(BlindsEvent cmd){
                 err = motor_.moveToMax();
                 if(err == ESP_OK){
                     resetNormalStallRecovery();
-                    activeTarget_ = BlindsTarget::MAX;
+                    activeTargetStep_ = motor_.getMaxStep();
+                    hasActiveTarget_ = true;
                     state_ = BlindsState::MOVING_UP;
                 }
             }
@@ -281,7 +281,8 @@ esp_err_t BlindsController::handleCommand(BlindsEvent cmd){
                 err = motor_.move(0);
                 if(err == ESP_OK){
                     resetNormalStallRecovery();
-                    activeTarget_ = BlindsTarget::MIN;
+                    activeTargetStep_ = 0;
+                    hasActiveTarget_ = true;
                     state_ = BlindsState::MOVING_DOWN;
                 }
             }

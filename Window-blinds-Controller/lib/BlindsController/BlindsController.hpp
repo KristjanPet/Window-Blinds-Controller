@@ -18,16 +18,11 @@ enum class BlindsState{
 class BlindsController{
 
 private:
-    enum class BlindsTarget{
-        NONE,
-        MIN,
-        MAX
-    };
-
     BlindsState state_ = BlindsState::IDLE;
     IMotor& motor_;
     BlindsCommandQueue& commandsQueue_;
-    BlindsTarget activeTarget_ = BlindsTarget::NONE;
+    int32_t activeTargetStep_ = 0;
+    bool hasActiveTarget_ = false;
     uint8_t normalStallRecoveries_ = 0;
 
     void resetNormalStallRecovery();
