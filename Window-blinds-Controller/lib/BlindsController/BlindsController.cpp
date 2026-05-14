@@ -11,6 +11,7 @@ void BlindsController::resetNormalStallRecovery(){
     normalStallRecoveries_ = 0;
     activeTargetStep_ = 0;
     hasActiveTarget_ = false;
+    recoveryReturnState_ = BlindsState::IDLE;
 }
 
 esp_err_t BlindsController::retryStallRecoveryTarget(){
@@ -27,9 +28,14 @@ esp_err_t BlindsController::retryStallRecoveryTarget(){
         err = ESP_ERR_INVALID_STATE;
     } else{
         const int32_t currentStep = motor_.getCurrentStep();
-        err = motor_.move(activeTargetStep_);
+        err = motor_.move(activeTargetStep_, recoveryReturnState_ == BlindsState::CALIBRATING_HOME);
         if(err == ESP_OK){
-            state_ = activeTargetStep_ >= currentStep ? BlindsState::MOVING_UP : BlindsState::MOVING_DOWN;
+            if(recoveryReturnState_ == BlindsState::CALIBRATING_HOME ||
+               recoveryReturnState_ == BlindsState::CALIBRATING_MAX){
+                state_ = recoveryReturnState_;
+            } else{
+                state_ = activeTargetStep_ >= currentStep ? BlindsState::MOVING_UP : BlindsState::MOVING_DOWN;
+            }
         }
     }
 
@@ -43,11 +49,13 @@ esp_err_t BlindsController::retryStallRecoveryTarget(){
 
 esp_err_t BlindsController::handleNormalStall(int32_t currentStep){
     const BlindsState stalledState = state_;
+    const bool stalledMovingUp = stalledState == BlindsState::MOVING_UP ||
+                                 stalledState == BlindsState::CALIBRATING_MAX;
     int32_t targetStep = activeTargetStep_;
     const int32_t maxStep = motor_.getMaxStep();
 
     if(!hasActiveTarget_){
-        targetStep = stalledState == BlindsState::MOVING_UP ? maxStep : 0;
+        targetStep = stalledMovingUp ? maxStep : 0;
     }
 
     esp_err_t err = motor_.stop();
@@ -76,7 +84,7 @@ esp_err_t BlindsController::handleNormalStall(int32_t currentStep){
     }
 
     int32_t backoffTarget = 0;
-    if(stalledState == BlindsState::MOVING_UP){
+    if(stalledMovingUp){
         if(currentStep > AppConfig::normalStallBackoffSteps){
             backoffTarget = currentStep - AppConfig::normalStallBackoffSteps;
         }
@@ -98,6 +106,7 @@ esp_err_t BlindsController::handleNormalStall(int32_t currentStep){
 
     activeTargetStep_ = targetStep;
     hasActiveTarget_ = true;
+    recoveryReturnState_ = stalledState;
     err = motor_.move(backoffTarget);
     if(err == ESP_OK){
         normalStallRecoveries_++;
@@ -144,6 +153,9 @@ esp_err_t BlindsController::handleCommand(BlindsEvent cmd){
             err = motor_.move(0, true);
             if(err == ESP_OK ){
                 resetNormalStallRecovery();
+                activeTargetStep_ = 0;
+                hasActiveTarget_ = true;
+                recoveryReturnState_ = BlindsState::CALIBRATING_HOME;
                 state_ = BlindsState::CALIBRATING_HOME;
                 ESP_LOGI(TAG, "Moving to HOME");
             } else{
@@ -185,6 +197,7 @@ esp_err_t BlindsController::handleCommand(BlindsEvent cmd){
                     motor_.setMaxStep(AppConfig::offsetOfMaxStep);
                     err = motor_.moveToMax();
                     if(err == ESP_OK){
+                        resetNormalStallRecovery();
                         state_ = BlindsState::IDLE;
                         ESP_LOGI(TAG, "Calibration complete");
                     } else{
@@ -202,6 +215,10 @@ esp_err_t BlindsController::handleCommand(BlindsEvent cmd){
         else if(state_ == BlindsState::MOVING_UP || state_ == BlindsState::MOVING_DOWN){
             err = handleNormalStall(currentStep);
         }
+        else if(state_ == BlindsState::CALIBRATING_HOME ||
+                state_ == BlindsState::CALIBRATING_MAX){
+            err = handleNormalStall(currentStep);
+        }
         else{
             ESP_LOGE(TAG, "Stall detected unexpectedly");
         }
@@ -216,6 +233,10 @@ esp_err_t BlindsController::handleCommand(BlindsEvent cmd){
                 vTaskDelay(pdMS_TO_TICKS(200));
                 err = motor_.moveToMax();
                 if(err == ESP_OK){
+                    resetNormalStallRecovery();
+                    activeTargetStep_ = motor_.getMaxStep();
+                    hasActiveTarget_ = true;
+                    recoveryReturnState_ = BlindsState::CALIBRATING_MAX;
                     state_ = BlindsState::CALIBRATING_MAX;
                 } else{
                     state_ = BlindsState::FAULT;
@@ -223,7 +244,7 @@ esp_err_t BlindsController::handleCommand(BlindsEvent cmd){
                 }
             }
             else{
-                // state_ = BlindsState::FAULT;
+                state_ = BlindsState::FAULT;
                 ESP_LOGE(TAG, "Homing detected unexpectedly, Blinds state set FAULT");
             }
         } else{

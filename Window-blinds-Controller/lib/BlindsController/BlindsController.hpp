@@ -23,6 +23,7 @@ private:
     BlindsCommandQueue& commandsQueue_;
     int32_t activeTargetStep_ = 0;
     bool hasActiveTarget_ = false;
+    BlindsState recoveryReturnState_ = BlindsState::IDLE;
     uint8_t normalStallRecoveries_ = 0;
 
     void resetNormalStallRecovery();
