@@ -50,4 +50,5 @@ public:
     void setHoming(int32_t offset = 0) override;
     void setMaxStep(int32_t offset = 0) override;
     int32_t getCurrentStep() const override;
+    int32_t getMaxStep() const override;
 };

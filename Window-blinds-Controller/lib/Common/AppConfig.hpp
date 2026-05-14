@@ -19,14 +19,18 @@ namespace AppConfig{
     //Blinds settings
     constexpr int32_t offsetOfMaxStep = 800; //offset from stall detected
     constexpr int32_t offsetOfMinStep = 800; //offset from home detected
+    constexpr int32_t normalStallBackoffSteps = 1000 * 10;
+    constexpr uint8_t normalStallMaxRecoveries = 3;
     constexpr int32_t stepStallThrehold = 1000 * 63;
     static_assert(offsetOfMaxStep > 0, "offsetOfMaxStep must be greater than zero");
     static_assert(offsetOfMinStep > 0, "offsetOfMinStep must be greater than zero");
+    static_assert(normalStallBackoffSteps > 0, "normalStallBackoffSteps must be greater than zero");
+    static_assert(normalStallMaxRecoveries > 0, "normalStallMaxRecoveries must be greater than zero");
 
     //motor driver main settings
     constexpr TMCUARTDriverPins UARTDriverPin = {GPIO_NUM_17, GPIO_NUM_16, GPIO_NUM_19}; //TX, RX, DIAG
     constexpr uint32_t motorGConfig = (0u << 2 | 1u << 6 | 1u << 7); //global configs, 2 - Stealth/spread, 6 - UART control, 7 - controll microsteps
-    constexpr uint8_t stallGuardThreshold = 100; //SGTHRS, stall at SG_RESULT <= stallGuardThreshold * 2
+    constexpr uint8_t stallGuardThreshold = 95; //SGTHRS, stall at SG_RESULT <= stallGuardThreshold * 2
 
     //buttons settings
     constexpr ButtonPins buttonPins = {GPIO_NUM_33, GPIO_NUM_32}; //up, down

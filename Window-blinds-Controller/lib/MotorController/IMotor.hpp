@@ -10,5 +10,6 @@ public:
     virtual void setHoming(int32_t offset = 0) = 0;
     virtual void setMaxStep(int32_t offset = 0) = 0;
     virtual int32_t getCurrentStep() const = 0;
+    virtual int32_t getMaxStep() const = 0;
     virtual ~IMotor() = default;
 };

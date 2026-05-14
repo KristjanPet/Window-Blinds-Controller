@@ -229,3 +229,7 @@ void MotorController::setMaxStep(int32_t offset){
 int32_t MotorController::getCurrentStep() const{
     return currentStep_;
 }
+
+int32_t MotorController::getMaxStep() const{
+    return maxStep_;
+}
