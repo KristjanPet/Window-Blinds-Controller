@@ -216,6 +216,75 @@ void test_stall_recovery_retry_stop_failure_enters_fault(void){
     TEST_ASSERT_EQUAL_UINT32(1, fMotor.getMoveToMaxCalls());
 }
 
+void test_home_calibration_stall_recovers_and_continues_calibrating_home(void){
+    FakeMotor fMotor;
+    BlindsCommandQueue queue;
+    BlindsController blinds(fMotor, queue);
+
+    fMotor.setMaxStepValue(20000);
+
+    TEST_ASSERT_EQUAL(ESP_OK, blinds.handleCommand(BlindsEvent::CALIBRATE));
+    fMotor.setCurrentStep(10000);
+
+    TEST_ASSERT_EQUAL(ESP_OK, blinds.handleCommand(BlindsEvent::STALL_DETECTED));
+    TEST_ASSERT_EQUAL(BlindsState::STALL_RECOVERY, blinds.getState());
+    TEST_ASSERT_EQUAL(LastAction::UP, fMotor.getLastAction());
+    TEST_ASSERT_EQUAL(10000 + AppConfig::normalStallBackoffSteps, fMotor.getLastTargetStep());
+
+    TEST_ASSERT_EQUAL(ESP_OK, blinds.handleCommand(BlindsEvent::LIMIT_REACHED));
+    TEST_ASSERT_EQUAL(BlindsState::CALIBRATING_HOME, blinds.getState());
+    TEST_ASSERT_EQUAL(LastAction::DOWN, fMotor.getLastAction());
+    TEST_ASSERT_EQUAL(0, fMotor.getLastTargetStep());
+    TEST_ASSERT_TRUE(fMotor.wasLastMoveCalibrating());
+}
+
+void test_max_calibration_stall_before_threshold_recovers_and_continues_calibrating_max(void){
+    FakeMotor fMotor;
+    BlindsCommandQueue queue;
+    BlindsController blinds(fMotor, queue);
+
+    fMotor.setMaxStepValue(20000);
+    fMotor.setCurrentStep(10000);
+    blinds.setState(BlindsState::CALIBRATING_MAX);
+
+    TEST_ASSERT_EQUAL(ESP_OK, blinds.handleCommand(BlindsEvent::STALL_DETECTED));
+    TEST_ASSERT_EQUAL(BlindsState::STALL_RECOVERY, blinds.getState());
+    TEST_ASSERT_EQUAL(LastAction::DOWN, fMotor.getLastAction());
+    TEST_ASSERT_EQUAL(10000 - AppConfig::normalStallBackoffSteps, fMotor.getLastTargetStep());
+
+    TEST_ASSERT_EQUAL(ESP_OK, blinds.handleCommand(BlindsEvent::LIMIT_REACHED));
+    TEST_ASSERT_EQUAL(BlindsState::CALIBRATING_MAX, blinds.getState());
+    TEST_ASSERT_EQUAL(LastAction::UP, fMotor.getLastAction());
+    TEST_ASSERT_EQUAL(20000, fMotor.getLastTargetStep());
+    TEST_ASSERT_FALSE(fMotor.wasLastMoveCalibrating());
+}
+
+void test_calibration_stall_fourth_recovery_enters_fault(void){
+    FakeMotor fMotor;
+    BlindsCommandQueue queue;
+    BlindsController blinds(fMotor, queue);
+
+    fMotor.setMaxStepValue(20000);
+    blinds.setState(BlindsState::CALIBRATING_MAX);
+
+    fMotor.setCurrentStep(10000);
+    TEST_ASSERT_EQUAL(ESP_OK, blinds.handleCommand(BlindsEvent::STALL_DETECTED));
+    TEST_ASSERT_EQUAL(ESP_OK, blinds.handleCommand(BlindsEvent::LIMIT_REACHED));
+
+    fMotor.setCurrentStep(11000);
+    TEST_ASSERT_EQUAL(ESP_OK, blinds.handleCommand(BlindsEvent::STALL_DETECTED));
+    TEST_ASSERT_EQUAL(ESP_OK, blinds.handleCommand(BlindsEvent::LIMIT_REACHED));
+
+    fMotor.setCurrentStep(12000);
+    TEST_ASSERT_EQUAL(ESP_OK, blinds.handleCommand(BlindsEvent::STALL_DETECTED));
+    TEST_ASSERT_EQUAL(ESP_OK, blinds.handleCommand(BlindsEvent::LIMIT_REACHED));
+
+    fMotor.setCurrentStep(13000);
+    TEST_ASSERT_EQUAL(ESP_ERR_INVALID_STATE, blinds.handleCommand(BlindsEvent::STALL_DETECTED));
+    TEST_ASSERT_EQUAL(BlindsState::FAULT, blinds.getState());
+    TEST_ASSERT_EQUAL(LastAction::STOP, fMotor.getLastAction());
+}
+
 void test_three_stall_recoveries_are_allowed_then_fourth_stall_faults(void){
     FakeMotor fMotor;
     BlindsCommandQueue queue;
@@ -488,6 +557,9 @@ extern "C" void app_main(void) {
     RUN_TEST(test_stall_recovery_limit_reached_retries_original_up_target);
     RUN_TEST(test_stall_recovery_limit_reached_retries_original_down_target);
     RUN_TEST(test_stall_recovery_retry_stop_failure_enters_fault);
+    RUN_TEST(test_home_calibration_stall_recovers_and_continues_calibrating_home);
+    RUN_TEST(test_max_calibration_stall_before_threshold_recovers_and_continues_calibrating_max);
+    RUN_TEST(test_calibration_stall_fourth_recovery_enters_fault);
     RUN_TEST(test_three_stall_recoveries_are_allowed_then_fourth_stall_faults);
     RUN_TEST(test_target_reached_resets_stall_recovery_count);
     RUN_TEST(test_stop_resets_stall_recovery_count);
