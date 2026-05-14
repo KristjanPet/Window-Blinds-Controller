@@ -168,6 +168,7 @@ void test_stall_recovery_limit_reached_retries_original_up_target(void){
     BlindsCommandQueue queue;
     BlindsController blinds(fMotor, queue);
 
+    fMotor.setMaxStepValue(20000);
     fMotor.setCurrentStep(10000);
 
     TEST_ASSERT_EQUAL(ESP_OK, blinds.handleCommand(BlindsEvent::UP));
@@ -175,7 +176,9 @@ void test_stall_recovery_limit_reached_retries_original_up_target(void){
     TEST_ASSERT_EQUAL(ESP_OK, blinds.handleCommand(BlindsEvent::LIMIT_REACHED));
     TEST_ASSERT_EQUAL(BlindsState::MOVING_UP, blinds.getState());
     TEST_ASSERT_EQUAL(LastAction::UP, fMotor.getLastAction());
-    TEST_ASSERT_EQUAL_UINT32(2, fMotor.getMoveToMaxCalls());
+    TEST_ASSERT_EQUAL(20000, fMotor.getLastTargetStep());
+    TEST_ASSERT_EQUAL_UINT32(1, fMotor.getMoveToMaxCalls());
+    TEST_ASSERT_EQUAL_UINT32(2, fMotor.getMoveCalls());
     TEST_ASSERT_EQUAL_UINT32(2, fMotor.getStopCalls());
 }
 
