@@ -150,127 +150,6 @@ esp_err_t BlindsController::handleCommand(BlindsEvent cmd){
                 ESP_LOGE(TAG, "Error sending command: %s", esp_err_to_name(err));
         }
         break;
-    case BlindsEvent::CALIBRATE:
-        if(state_ != BlindsState::FAULT){ 
-            err = motor_.move(0, true);
-            if(err == ESP_OK ){
-                resetNormalStallRecovery();
-                activeTargetStep_ = 0;
-                hasActiveTarget_ = true;
-                recoveryReturnState_ = BlindsState::CALIBRATING_HOME;
-                state_ = BlindsState::CALIBRATING_HOME;
-                ESP_LOGI(TAG, "Moving to HOME");
-            } else{
-                state_ = BlindsState::FAULT;
-                ESP_LOGE(TAG, "Error sending command: %s", esp_err_to_name(err));
-            }
-        }
-        else{
-            ESP_LOGE(TAG, "Blinds state is FAULT");
-            err = ESP_ERR_INVALID_STATE;
-        }
-        break;
-    case BlindsEvent::LIMIT_REACHED:
-        if(state_ == BlindsState::STALL_RECOVERY){
-            err = retryStallRecoveryTarget();
-        }
-        else if (state_ == BlindsState::MOVING_UP || state_ == BlindsState::MOVING_DOWN) {
-            err = motor_.stop();
-            if(err == ESP_OK ){
-                if(state_ != BlindsState::FAULT){
-                    resetNormalStallRecovery();
-                    state_ = BlindsState::IDLE;
-                } else{ 
-                    ESP_LOGE(TAG, "Blinds state is FAULT");
-                }
-            } else{
-                    state_ = BlindsState::FAULT;
-                    ESP_LOGE(TAG, "Error sending command: %s", esp_err_to_name(err));
-            }
-            ESP_LOGI(TAG, "LIMIT REACHED");
-        } 
-        break;
-    case BlindsEvent::STALL_DETECTED: { //TODO add stall detected before calibration completed
-        int32_t currentStep = motor_.getCurrentStep();
-        if (state_ == BlindsState::CALIBRATING_MAX && currentStep > AppConfig::stepStallThrehold){
-            err = motor_.stop();
-            if(err == ESP_OK ){
-                if(state_ != BlindsState::FAULT){
-                    motor_.setMaxStep(AppConfig::offsetOfMaxStep);
-                    int32_t targetStep = calibrationReturnStep_;
-                    if(targetStep > motor_.getMaxStep()){
-                        targetStep = motor_.getMaxStep();
-                    }
-                    err = motor_.move(targetStep);
-                    if(err == ESP_OK){
-                        resetNormalStallRecovery();
-                        const int32_t currentStep = motor_.getCurrentStep();
-                        activeTargetStep_ = targetStep;
-                        hasActiveTarget_ = true;
-                        state_ = targetStep >= currentStep ? BlindsState::MOVING_UP : BlindsState::MOVING_DOWN;
-                        ESP_LOGI(TAG, "Calibration complete");
-                    } else{
-                        state_ = BlindsState::FAULT;
-                        ESP_LOGE(TAG, "Error returning after calibration: %s", esp_err_to_name(err));
-                    }
-                } else{ 
-                    ESP_LOGE(TAG, "Blinds state is FAULT");
-                }
-            } else{
-                state_ = BlindsState::FAULT;
-                ESP_LOGE(TAG, "Error sending command: %s", esp_err_to_name(err));
-            }
-        }
-        else if(state_ == BlindsState::MOVING_UP || state_ == BlindsState::MOVING_DOWN){
-            err = handleNormalStall(currentStep);
-        }
-        else if(state_ == BlindsState::CALIBRATING_HOME ||
-                state_ == BlindsState::CALIBRATING_MAX){
-            err = handleNormalStall(currentStep);
-        }
-        else{
-            ESP_LOGE(TAG, "Stall detected unexpectedly");
-        }
-        break;
-    }
-    case BlindsEvent::HOMING_REACHED:    
-        ESP_LOGI(TAG, "HOMING REACHED");
-        err = motor_.stop();
-        if(err == ESP_OK ){
-            if(state_ == BlindsState::CALIBRATING_HOME){
-                const int64_t rawReturnStep = static_cast<int64_t>(INT_MAX) -
-                                              static_cast<int64_t>(motor_.getCurrentStep()) +
-                                              AppConfig::offsetOfMinStep;
-                if(rawReturnStep < 0){
-                    calibrationReturnStep_ = 0;
-                } else if(rawReturnStep > INT_MAX){
-                    calibrationReturnStep_ = INT_MAX;
-                } else{
-                    calibrationReturnStep_ = static_cast<int32_t>(rawReturnStep);
-                }
-                motor_.setHoming(AppConfig::offsetOfMinStep);
-                vTaskDelay(pdMS_TO_TICKS(200));
-                err = motor_.moveToMax();
-                if(err == ESP_OK){
-                    resetNormalStallRecovery();
-                    activeTargetStep_ = motor_.getMaxStep();
-                    hasActiveTarget_ = true;
-                    recoveryReturnState_ = BlindsState::CALIBRATING_MAX;
-                    state_ = BlindsState::CALIBRATING_MAX;
-                } else{
-                    state_ = BlindsState::FAULT;
-                    ESP_LOGE(TAG, "Error moving to max during calibration: %s", esp_err_to_name(err));
-                }
-            }
-            else{
-                state_ = BlindsState::FAULT;
-                ESP_LOGE(TAG, "Homing detected unexpectedly, Blinds state set FAULT");
-            }
-        } else{
-                state_ = BlindsState::FAULT;
-                ESP_LOGE(TAG, "Error sending command: %s", esp_err_to_name(err));
-        }
-        break;
     case BlindsEvent::UP:
         if(state_ != BlindsState::FAULT){
             if(state_ == BlindsState::MOVING_DOWN || state_ == BlindsState::MOVING_UP ||
@@ -333,6 +212,121 @@ esp_err_t BlindsController::handleCommand(BlindsEvent cmd){
             err = ESP_ERR_INVALID_STATE;
         }
         break;
+    case BlindsEvent::LIMIT_REACHED: //soft low or top limit reached
+        if(state_ == BlindsState::STALL_RECOVERY){
+            err = retryStallRecoveryTarget();
+        }
+        else if (state_ == BlindsState::MOVING_UP || state_ == BlindsState::MOVING_DOWN) {
+            err = motor_.stop();
+            if(err == ESP_OK ){
+                if(state_ != BlindsState::FAULT){
+                    resetNormalStallRecovery();
+                    state_ = BlindsState::IDLE;
+                } else{ 
+                    ESP_LOGE(TAG, "Blinds state is FAULT");
+                }
+            } else{
+                    state_ = BlindsState::FAULT;
+                    ESP_LOGE(TAG, "Error sending command: %s", esp_err_to_name(err));
+            }
+            ESP_LOGI(TAG, "LIMIT REACHED");
+        } 
+        break;
+    case BlindsEvent::CALIBRATE: //start calibrating
+        if(state_ != BlindsState::FAULT){ 
+            err = motor_.move(0, true);
+            if(err == ESP_OK ){
+                resetNormalStallRecovery();
+                activeTargetStep_ = 0;
+                hasActiveTarget_ = true;
+                recoveryReturnState_ = BlindsState::CALIBRATING_HOME;
+                state_ = BlindsState::CALIBRATING_HOME;
+                ESP_LOGI(TAG, "Moving to HOME");
+            } else{
+                state_ = BlindsState::FAULT;
+                ESP_LOGE(TAG, "Error sending command: %s", esp_err_to_name(err));
+            }
+        }
+        else{
+            ESP_LOGE(TAG, "Blinds state is FAULT");
+            err = ESP_ERR_INVALID_STATE;
+        }
+        break;
+    case BlindsEvent::HOMING_REACHED:    
+        ESP_LOGI(TAG, "HOMING REACHED");
+        err = motor_.stop();
+        if(err == ESP_OK ){
+            if(state_ == BlindsState::CALIBRATING_HOME){
+                const int64_t rawReturnStep = static_cast<int64_t>(INT_MAX) -
+                                              static_cast<int64_t>(motor_.getCurrentStep()) +
+                                              AppConfig::offsetOfMinStep;
+                if(rawReturnStep < 0){
+                    calibrationReturnStep_ = 0;
+                } else if(rawReturnStep > INT_MAX){
+                    calibrationReturnStep_ = INT_MAX;
+                } else{
+                    calibrationReturnStep_ = static_cast<int32_t>(rawReturnStep);
+                }
+                motor_.setHoming(AppConfig::offsetOfMinStep);
+                vTaskDelay(pdMS_TO_TICKS(200));
+                err = motor_.moveToMax();
+                if(err == ESP_OK){
+                    resetNormalStallRecovery();
+                    activeTargetStep_ = motor_.getMaxStep();
+                    hasActiveTarget_ = true;
+                    recoveryReturnState_ = BlindsState::CALIBRATING_MAX;
+                    state_ = BlindsState::CALIBRATING_MAX;
+                } else{
+                    state_ = BlindsState::FAULT;
+                    ESP_LOGE(TAG, "Error moving to max during calibration: %s", esp_err_to_name(err));
+                }
+            }
+            else{
+                state_ = BlindsState::FAULT;
+                ESP_LOGE(TAG, "Homing detected unexpectedly, Blinds state set FAULT");
+            }
+        } else{
+                state_ = BlindsState::FAULT;
+                ESP_LOGE(TAG, "Error sending command: %s", esp_err_to_name(err));
+        }
+        break;
+    case BlindsEvent::STALL_DETECTED: {
+        int32_t currentStep = motor_.getCurrentStep();
+        if (state_ == BlindsState::CALIBRATING_MAX && currentStep > AppConfig::stepStallThrehold){ //stall detected as limit reached (top)
+            err = motor_.stop();
+            if(err == ESP_OK ){
+                if(state_ != BlindsState::FAULT){
+                    motor_.setMaxStep(AppConfig::offsetOfMaxStep);
+                    int32_t targetStep = calibrationReturnStep_;
+                    if(targetStep > motor_.getMaxStep()){
+                        targetStep = motor_.getMaxStep();
+                    }
+                    err = motor_.move(targetStep);
+                    if(err == ESP_OK){
+                        resetNormalStallRecovery();
+                        const int32_t currentStep = motor_.getCurrentStep();
+                        activeTargetStep_ = targetStep;
+                        hasActiveTarget_ = true;
+                        state_ = targetStep >= currentStep ? BlindsState::MOVING_UP : BlindsState::MOVING_DOWN;
+                        ESP_LOGI(TAG, "Calibration complete");
+                    } else{
+                        state_ = BlindsState::FAULT;
+                        ESP_LOGE(TAG, "Error returning after calibration: %s", esp_err_to_name(err));
+                    }
+                } else{ 
+                    ESP_LOGE(TAG, "Blinds state is FAULT");
+                }
+            } else{
+                state_ = BlindsState::FAULT;
+                ESP_LOGE(TAG, "Error sending command: %s", esp_err_to_name(err));
+            }
+        }
+        else if(state_ == BlindsState::MOVING_UP || state_ == BlindsState::MOVING_DOWN
+                || state_ == BlindsState::CALIBRATING_HOME || state_ == BlindsState::CALIBRATING_MAX){ //stall detected during normal movment or calibration
+            err = handleNormalStall(currentStep);
+        }
+        break;
+    }
     case BlindsEvent::HOMING_CHECK:
         motor_.setHoming();
         err = motor_.moveToMax();

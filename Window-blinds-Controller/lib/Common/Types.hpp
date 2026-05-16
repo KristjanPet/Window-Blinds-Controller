@@ -2,14 +2,14 @@
 #include <driver/gpio.h>
 
 enum class BlindsEvent{
+    STOP,
     UP,
     DOWN,
-    STOP,
-    CALIBRATE,
     LIMIT_REACHED,
+    CALIBRATE,
     HOMING_REACHED,
-    HOMING_CHECK,
     STALL_DETECTED,
+    HOMING_CHECK,
     FAULT
 };
 
