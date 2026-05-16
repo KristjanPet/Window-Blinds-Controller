@@ -427,6 +427,64 @@ void test_homing_reached_move_to_max_failure_enters_fault(void){
     TEST_ASSERT_EQUAL(LastAction::UP, fMotor.getLastAction());
 }
 
+void test_calibration_returns_to_step_computed_at_homing(void){
+    FakeMotor fMotor;
+    BlindsCommandQueue queue;
+    BlindsController blinds(fMotor, queue);
+
+    const int32_t travelFromBoot = 5000;
+    const int32_t expectedReturnStep = travelFromBoot + AppConfig::offsetOfMinStep;
+
+    TEST_ASSERT_EQUAL(ESP_OK, blinds.handleCommand(BlindsEvent::CALIBRATE));
+    fMotor.setCurrentStep(INT_MAX - travelFromBoot);
+    TEST_ASSERT_EQUAL(ESP_OK, blinds.handleCommand(BlindsEvent::HOMING_REACHED));
+    TEST_ASSERT_EQUAL(BlindsState::CALIBRATING_MAX, blinds.getState());
+
+    fMotor.setCurrentStep(AppConfig::stepStallThrehold + 10000);
+    TEST_ASSERT_EQUAL(ESP_OK, blinds.handleCommand(BlindsEvent::STALL_DETECTED));
+
+    TEST_ASSERT_EQUAL(BlindsState::MOVING_DOWN, blinds.getState());
+    TEST_ASSERT_EQUAL(LastAction::DOWN, fMotor.getLastAction());
+    TEST_ASSERT_EQUAL(expectedReturnStep, fMotor.getLastTargetStep());
+}
+
+void test_calibration_return_target_clamps_to_calibrated_max(void){
+    FakeMotor fMotor;
+    BlindsCommandQueue queue;
+    BlindsController blinds(fMotor, queue);
+
+    const int32_t travelFromBoot = 40000;
+    const int32_t maxStallStep = AppConfig::stepStallThrehold + 10000;
+    const int32_t expectedMaxStep = maxStallStep - AppConfig::offsetOfMaxStep;
+
+    TEST_ASSERT_EQUAL(ESP_OK, blinds.handleCommand(BlindsEvent::CALIBRATE));
+    fMotor.setCurrentStep(INT_MAX - travelFromBoot);
+    TEST_ASSERT_EQUAL(ESP_OK, blinds.handleCommand(BlindsEvent::HOMING_REACHED));
+
+    fMotor.setCurrentStep(maxStallStep);
+    TEST_ASSERT_EQUAL(ESP_OK, blinds.handleCommand(BlindsEvent::STALL_DETECTED));
+
+    TEST_ASSERT_EQUAL(BlindsState::MOVING_DOWN, blinds.getState());
+    TEST_ASSERT_EQUAL(expectedMaxStep, fMotor.getLastTargetStep());
+}
+
+void test_calibration_return_move_failure_enters_fault(void){
+    FakeMotor fMotor;
+    BlindsCommandQueue queue;
+    BlindsController blinds(fMotor, queue);
+
+    TEST_ASSERT_EQUAL(ESP_OK, blinds.handleCommand(BlindsEvent::CALIBRATE));
+    fMotor.setCurrentStep(INT_MAX - 5000);
+    TEST_ASSERT_EQUAL(ESP_OK, blinds.handleCommand(BlindsEvent::HOMING_REACHED));
+
+    fMotor.setCurrentStep(AppConfig::stepStallThrehold + 10000);
+    fMotor.setNextMoveResult(ESP_FAIL);
+
+    TEST_ASSERT_EQUAL(ESP_FAIL, blinds.handleCommand(BlindsEvent::STALL_DETECTED));
+    TEST_ASSERT_EQUAL(BlindsState::FAULT, blinds.getState());
+    TEST_ASSERT_EQUAL(LastAction::DOWN, fMotor.getLastAction());
+}
+
 void test_up_during_home_calibration_stops_and_enters_fault(void){
     FakeMotor fMotor;
     BlindsCommandQueue queue;
@@ -569,6 +627,9 @@ extern "C" void app_main(void) {
     RUN_TEST(test_move_down_failure_from_idle);
     RUN_TEST(test_calibrate_move_failure_enters_fault);
     RUN_TEST(test_homing_reached_move_to_max_failure_enters_fault);
+    RUN_TEST(test_calibration_returns_to_step_computed_at_homing);
+    RUN_TEST(test_calibration_return_target_clamps_to_calibrated_max);
+    RUN_TEST(test_calibration_return_move_failure_enters_fault);
     RUN_TEST(test_up_during_home_calibration_stops_and_enters_fault);
     RUN_TEST(test_up_during_max_calibration_stops_and_enters_fault);
     RUN_TEST(test_down_during_home_calibration_stops_and_enters_fault);
