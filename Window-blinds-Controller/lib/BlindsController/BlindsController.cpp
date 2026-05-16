@@ -1,5 +1,7 @@
 #include "BlindsController.hpp"
 
+#include <climits>
+
 #include "AppConfig.hpp"
 
 static const char* TAG = "BLINDS";
@@ -195,14 +197,21 @@ esp_err_t BlindsController::handleCommand(BlindsEvent cmd){
             if(err == ESP_OK ){
                 if(state_ != BlindsState::FAULT){
                     motor_.setMaxStep(AppConfig::offsetOfMaxStep);
-                    err = motor_.moveToMax();
+                    int32_t targetStep = calibrationReturnStep_;
+                    if(targetStep > motor_.getMaxStep()){
+                        targetStep = motor_.getMaxStep();
+                    }
+                    err = motor_.move(targetStep);
                     if(err == ESP_OK){
                         resetNormalStallRecovery();
-                        state_ = BlindsState::IDLE;
+                        const int32_t currentStep = motor_.getCurrentStep();
+                        activeTargetStep_ = targetStep;
+                        hasActiveTarget_ = true;
+                        state_ = targetStep >= currentStep ? BlindsState::MOVING_UP : BlindsState::MOVING_DOWN;
                         ESP_LOGI(TAG, "Calibration complete");
                     } else{
                         state_ = BlindsState::FAULT;
-                        ESP_LOGE(TAG, "Error backing away from max limit: %s", esp_err_to_name(err));
+                        ESP_LOGE(TAG, "Error returning after calibration: %s", esp_err_to_name(err));
                     }
                 } else{ 
                     ESP_LOGE(TAG, "Blinds state is FAULT");
@@ -229,6 +238,16 @@ esp_err_t BlindsController::handleCommand(BlindsEvent cmd){
         err = motor_.stop();
         if(err == ESP_OK ){
             if(state_ == BlindsState::CALIBRATING_HOME){
+                const int64_t rawReturnStep = static_cast<int64_t>(INT_MAX) -
+                                              static_cast<int64_t>(motor_.getCurrentStep()) +
+                                              AppConfig::offsetOfMinStep;
+                if(rawReturnStep < 0){
+                    calibrationReturnStep_ = 0;
+                } else if(rawReturnStep > INT_MAX){
+                    calibrationReturnStep_ = INT_MAX;
+                } else{
+                    calibrationReturnStep_ = static_cast<int32_t>(rawReturnStep);
+                }
                 motor_.setHoming(AppConfig::offsetOfMinStep);
                 vTaskDelay(pdMS_TO_TICKS(200));
                 err = motor_.moveToMax();

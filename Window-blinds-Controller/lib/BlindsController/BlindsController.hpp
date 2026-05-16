@@ -25,6 +25,7 @@ private:
     bool hasActiveTarget_ = false;
     BlindsState recoveryReturnState_ = BlindsState::IDLE;
     uint8_t normalStallRecoveries_ = 0;
+    int32_t calibrationReturnStep_ = 0;
 
     void resetNormalStallRecovery();
     esp_err_t handleNormalStall(int32_t currentStep);
