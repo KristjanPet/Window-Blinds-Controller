@@ -5,6 +5,7 @@
 #include <freertos/task.h>
 #include "MotorController.hpp"
 #include "ButtonHandler.hpp"
+#include "HomeSensor.hpp"
 #include "BlindsController.hpp"
 #include "BlindsCommandQueue.hpp"
 #include "Tmc2209Driver.hpp"
@@ -14,12 +15,16 @@ static const char *TAG_MAIN = "MAIN";
 
 extern "C" void app_main(void) {
 
+    esp_err_t err = ESP_OK;
+
     BlindsCommandQueue commandsQueue;
-    if(commandsQueue.init() != ESP_OK){
+    err = commandsQueue.init();
+    if(err != ESP_OK){
+        ESP_LOGE(TAG_MAIN, "Command queue init failed: %s", esp_err_to_name(err));
         esp_restart();
     };
 
-    esp_err_t err = gpio_install_isr_service(0);
+    err = gpio_install_isr_service(0);
     if(err != ESP_OK){
         ESP_LOGE(TAG_MAIN, "Failed to install GPIO ISR service: %s", esp_err_to_name(err));
         esp_restart();
@@ -37,15 +42,26 @@ extern "C" void app_main(void) {
         esp_restart();
     };
 
-    MotorController motor(AppConfig::motorPins, AppConfig::togglePeriodUs, commandsQueue);
-    if(motor.init() != ESP_OK){
+    MotorController motor(AppConfig::motorPins, commandsQueue);
+    err = motor.init();
+    if(err != ESP_OK){
+        ESP_LOGE(TAG_MAIN, "Motor init failed: %s", esp_err_to_name(err));
         esp_restart();
     };
 
     BlindsController blinds(motor, commandsQueue);
 
     ButtonHandler buttonHandler(AppConfig::buttonPins, commandsQueue);
-    if(buttonHandler.init() != ESP_OK){
+    err = buttonHandler.init();
+    if(err != ESP_OK){
+        ESP_LOGE(TAG_MAIN, "Button handler init failed: %s", esp_err_to_name(err));
+        esp_restart();
+    };
+
+    HomeSensor homeSensor(AppConfig::homeSensorPin, commandsQueue);
+    err = homeSensor.init();
+    if(err != ESP_OK){
+        ESP_LOGE(TAG_MAIN, "Home sensor init failed: %s", esp_err_to_name(err));
         esp_restart();
     };
 
@@ -58,8 +74,22 @@ extern "C" void app_main(void) {
         esp_restart();
     }
 
+    vTaskDelay(pdMS_TO_TICKS(500));
+    ESP_LOGI(TAG_MAIN, "Init complete, checking sensor....");
+
+    err = homeSensor.sensorCheck();
+    if(err != ESP_OK){
+        ESP_LOGE(TAG_MAIN, "Homing sensor check failed: %s", esp_err_to_name(err));
+        esp_restart();
+    };
+
     vTaskDelay(pdMS_TO_TICKS(1000));
-    ESP_LOGI(TAG_MAIN, "Init complete, running program....");
+    ESP_LOGI(TAG_MAIN, "calibrating blinds....");
+
+    if(commandsQueue.send(BlindsEvent::CALIBRATE) != pdTRUE){
+        ESP_LOGE(TAG_MAIN, "Failed to start calibrating, restarting...");
+        esp_restart();
+    }
 
     while (true){
         vTaskDelay(pdMS_TO_TICKS(100));

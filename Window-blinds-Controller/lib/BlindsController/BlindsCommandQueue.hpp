@@ -1,4 +1,5 @@
 #pragma once
+#include <cstdint>
 #include <freertos/FreeRTOS.h>
 #include <esp_check.h>
 #include "Types.hpp"
@@ -8,6 +9,7 @@ class BlindsCommandQueue{
 
 private:
     QueueHandle_t queue_ = nullptr;
+    volatile uint32_t droppedEvents_ = 0;
 
 public:
     esp_err_t init();

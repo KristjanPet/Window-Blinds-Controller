@@ -2,10 +2,15 @@
 #include <driver/gpio.h>
 
 enum class BlindsEvent{
+    STOP,
     UP,
     DOWN,
-    STOP,
-    LIMIT_REACHED
+    LIMIT_REACHED,
+    CALIBRATE,
+    HOMING_REACHED,
+    STALL_DETECTED,
+    HOMING_CHECK,
+    FAULT
 };
 
 struct MotorPins{

@@ -17,23 +17,22 @@ using namespace Tmc2209Constants;
 Tmc2209Driver::Tmc2209Driver(const TMCUARTDriverPins& UARTPins, BlindsCommandQueue& commandsQueue)
     : UARTPins_(UARTPins), commandsQueue_(commandsQueue){}
 
-void IRAM_ATTR Tmc2209Driver::diagIsr(void* arg)
-{
+void IRAM_ATTR Tmc2209Driver::diagIsr(void* arg){
     auto* self = static_cast<Tmc2209Driver*>(arg);
     if (!self) {
         return;
     }
 
     BaseType_t hpTaskWoken = pdFALSE;
-    BlindsEvent cmd = BlindsEvent::LIMIT_REACHED;
+    BlindsEvent cmd = BlindsEvent::STALL_DETECTED;
     self->commandsQueue_.sendFromISR(cmd, &hpTaskWoken);
+
     if (hpTaskWoken) {
         portYIELD_FROM_ISR();
     }
 }
 
-static uint8_t tmcCrc(const uint8_t* data, size_t len)
-{
+static uint8_t tmcCrc(const uint8_t* data, size_t len){
     uint8_t crc = 0;
     // len includes CRC byte at the end; CRC byte must be 0 while calculating
     for (size_t i = 0; i < len - 1; i++) {
@@ -50,13 +49,11 @@ static uint8_t tmcCrc(const uint8_t* data, size_t len)
     return crc;
 }
 
-static bool bytesEqual(const uint8_t* lhs, const uint8_t* rhs, size_t len)
-{
+static bool bytesEqual(const uint8_t* lhs, const uint8_t* rhs, size_t len){
     return memcmp(lhs, rhs, len) == 0;
 }
 
-static uint32_t decodeRegisterValue(const uint8_t* frame)
-{
+static uint32_t decodeRegisterValue(const uint8_t* frame){
     return (static_cast<uint32_t>(frame[TMC_REGISTER_VALUE_INDEX]) << 24) |
            (static_cast<uint32_t>(frame[TMC_REGISTER_VALUE_INDEX + 1]) << 16) |
            (static_cast<uint32_t>(frame[TMC_REGISTER_VALUE_INDEX + 2]) << 8) |
@@ -95,8 +92,7 @@ esp_err_t Tmc2209Driver::init(){
     return ESP_OK;
 }
 
-esp_err_t Tmc2209Driver::writeReg(uint8_t reg, uint32_t value)
-{
+esp_err_t Tmc2209Driver::writeReg(uint8_t reg, uint32_t value){
     if (!initialized_) {
         ESP_LOGE(TAG, "writeReg called before init");
         return ESP_ERR_INVALID_STATE;
@@ -126,8 +122,7 @@ esp_err_t Tmc2209Driver::writeReg(uint8_t reg, uint32_t value)
     return ESP_OK;
 }
 
-esp_err_t Tmc2209Driver::readReg(uint8_t reg, uint32_t& value)
-{
+esp_err_t Tmc2209Driver::readReg(uint8_t reg, uint32_t& value){
     if (!initialized_) {
         ESP_LOGE(TAG, "readReg called before init");
         return ESP_ERR_INVALID_STATE;
@@ -192,8 +187,7 @@ esp_err_t Tmc2209Driver::readReg(uint8_t reg, uint32_t& value)
     return ESP_OK;
 }
 
-esp_err_t Tmc2209Driver::readSgResult(uint16_t& sgResult)
-{
+esp_err_t Tmc2209Driver::readSgResult(uint16_t& sgResult){
     uint32_t rawValue = 0;
     esp_err_t err = readReg(REG_SG_RESULT, rawValue);
     if (err != ESP_OK) {
@@ -204,8 +198,7 @@ esp_err_t Tmc2209Driver::readSgResult(uint16_t& sgResult)
     return ESP_OK;
 }
 
-esp_err_t Tmc2209Driver::configureAndVerify()
-{
+esp_err_t Tmc2209Driver::configureAndVerify(){
     uint32_t ifcntBefore = 0;
     uint32_t ifcntAfter  = 0;
     uint32_t ioin        = 0;
