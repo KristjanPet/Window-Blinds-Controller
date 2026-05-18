@@ -24,8 +24,8 @@ esp_err_t ButtonHandler::init(){
         .pin_bit_mask = (1ULL << pins_.up) | (1ULL << pins_.down),
         .mode = GPIO_MODE_INPUT,
         .pull_up_en = GPIO_PULLUP_DISABLE,
-        .pull_down_en = GPIO_PULLDOWN_ENABLE,
-        .intr_type = GPIO_INTR_POSEDGE
+        .pull_down_en = GPIO_PULLDOWN_DISABLE,
+        .intr_type = GPIO_INTR_NEGEDGE
     };
     ESP_RETURN_ON_ERROR(gpio_config(&buttIoConf), TAG, "Failed to config button gpio");
 
@@ -67,12 +67,12 @@ void ButtonHandler::buttonTask(void *arg){
                     continue;
             }
 
-            if (gpio_get_level(pin)) {
+            if (!gpio_get_level(pin)) {
                 if(self->commandQueue_.send(cmd, 0) != pdTRUE){
                     ESP_LOGE(TAG, "Error sending button command");
                 }
 
-                while (gpio_get_level(pin)) { //TODO remove after implementing schmit trigger
+                while (!gpio_get_level(pin)) {
                     vTaskDelay(pdMS_TO_TICKS(10));
                 }
             }
