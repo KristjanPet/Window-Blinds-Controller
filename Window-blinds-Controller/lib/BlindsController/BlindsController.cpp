@@ -282,7 +282,7 @@ esp_err_t BlindsController::handleCommand(BlindsEvent cmd){
                 }
             }
             else{
-                state_ = BlindsState::FAULT;
+                // state_ = BlindsState::FAULT;
                 ESP_LOGE(TAG, "Homing detected unexpectedly, Blinds state set FAULT");
             }
         } else{
