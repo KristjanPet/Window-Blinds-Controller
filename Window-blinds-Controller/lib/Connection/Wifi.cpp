@@ -9,14 +9,35 @@
 
 static const char* TAG_WIFI = "WIFI";
 
+static esp_err_t initNvs(){
+    esp_err_t err = nvs_flash_init();
+    if(err == ESP_ERR_NVS_NO_FREE_PAGES || err == ESP_ERR_NVS_NEW_VERSION_FOUND){
+        err = nvs_flash_erase();
+        if(err != ESP_OK){
+            return err;
+        }
+        err = nvs_flash_init();
+    }
+
+    return err;
+}
+
 esp_err_t Wifi::init(){
     if(initialized_){
         return ESP_OK;
     }
 
-    esp_err_t err = nvs_flash_init();
+    esp_err_t err = initNvs();
     if(err != ESP_OK){
         return err;
+    }
+
+    if(connectionEvents_ == nullptr){
+        connectionEvents_ = xEventGroupCreate();
+        if(connectionEvents_ == nullptr){
+            return ESP_ERR_NO_MEM;
+        }
+        xEventGroupSetBits(connectionEvents_, disconnectedEventBit);
     }
 
     err = esp_netif_init();
@@ -102,6 +123,11 @@ esp_err_t Wifi::startAndConnect(const char* ssid, const char* password){
         return err;
     }
 
+    if(connectionEvents_ != nullptr){
+        xEventGroupClearBits(connectionEvents_, connectedEventBit);
+        xEventGroupSetBits(connectionEvents_, disconnectedEventBit);
+    }
+
     if(!started_){
         err = esp_wifi_start();
         if(err != ESP_OK){
@@ -139,7 +165,11 @@ esp_err_t Wifi::registerEventHandlers(){
                                               this,
                                               &ipEventHandler_);
     if(err != ESP_OK){
-        return err;
+        const esp_err_t cleanupErr = esp_event_handler_instance_unregister(WIFI_EVENT,
+                                                                           ESP_EVENT_ANY_ID,
+                                                                           wifiEventHandler_);
+        wifiEventHandler_ = nullptr;
+        return cleanupErr == ESP_OK ? err : cleanupErr;
     }
 
     eventHandlersRegistered_ = true;
@@ -167,7 +197,10 @@ void Wifi::handleWifiEvent(int32_t eventId){
     }
 
     if(eventId == WIFI_EVENT_STA_DISCONNECTED){
-        connected_ = false;
+        if(connectionEvents_ != nullptr){
+            xEventGroupClearBits(connectionEvents_, connectedEventBit);
+            xEventGroupSetBits(connectionEvents_, disconnectedEventBit);
+        }
         ESP_LOGW(TAG_WIFI, "WiFi disconnected, retrying");
         const esp_err_t err = esp_wifi_connect();
         if(err != ESP_OK){
@@ -181,7 +214,11 @@ void Wifi::handleIpEvent(int32_t eventId, void* eventData){
         return;
     }
 
-    connected_ = true;
+    if(connectionEvents_ != nullptr){
+        xEventGroupClearBits(connectionEvents_, disconnectedEventBit);
+        xEventGroupSetBits(connectionEvents_, connectedEventBit);
+    }
+
     const ip_event_got_ip_t* event = static_cast<const ip_event_got_ip_t*>(eventData);
     if(event == nullptr){
         ESP_LOGI(TAG_WIFI, "WiFi connected, got IP");
@@ -189,4 +226,17 @@ void Wifi::handleIpEvent(int32_t eventId, void* eventData){
     }
 
     ESP_LOGI(TAG_WIFI, "WiFi connected, IP: " IPSTR, IP2STR(&event->ip_info.ip));
+}
+
+
+bool Wifi::isConnected() const{
+    if(connectionEvents_ == nullptr){
+        return false;
+    }
+
+    return (xEventGroupGetBits(connectionEvents_) & connectedEventBit) != 0;
+}
+
+EventGroupHandle_t Wifi::connectionEvents() const{
+    return connectionEvents_;
 }
