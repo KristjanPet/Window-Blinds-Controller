@@ -10,6 +10,7 @@
 #include "BlindsCommandQueue.hpp"
 #include "Tmc2209Driver.hpp"
 #include "AppConfig.hpp"
+#include "Wifi.hpp"
 
 static const char *TAG_MAIN = "MAIN";
 
@@ -91,8 +92,29 @@ extern "C" void app_main(void) {
         esp_restart();
     }
 
+
+    constexpr uint16_t maxWifiScanResults = 16;
+    Wifi wifi;
+
     while (true){
-        vTaskDelay(pdMS_TO_TICKS(100));
+        err = wifi.init();
+        if(err != ESP_OK){
+            ESP_LOGW(TAG_MAIN, "WiFi init failed, retrying in 5 seconds: %s", esp_err_to_name(err));
+        }
+        else{
+            WifiNetwork networks[maxWifiScanResults];
+            uint16_t foundNetworks = 0;
+            err = wifi.scan(networks, maxWifiScanResults, foundNetworks);
+            if(err != ESP_OK){
+                ESP_LOGW(TAG_MAIN, "WiFi scan failed, retrying in 5 seconds: %s", esp_err_to_name(err));
+            }
+            else{
+                const uint16_t displayedNetworks = foundNetworks < maxWifiScanResults ? foundNetworks : maxWifiScanResults;
+                wifi.logScanResults(networks, displayedNetworks, foundNetworks);
+            }
+        }
+
+        vTaskDelay(pdMS_TO_TICKS(5000));
     }
     
 }
