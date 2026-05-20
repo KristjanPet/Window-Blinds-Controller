@@ -11,6 +11,7 @@
 #include "Tmc2209Driver.hpp"
 #include "AppConfig.hpp"
 #include "Wifi.hpp"
+#include "WifiSecrets.hpp"
 
 static const char *TAG_MAIN = "MAIN";
 
@@ -66,6 +67,12 @@ extern "C" void app_main(void) {
         esp_restart();
     };
 
+    Wifi wifi;
+    err = wifi.startAndConnect(WifiSecrets::ssid, WifiSecrets::password);
+    if(err != ESP_OK){
+        ESP_LOGW(TAG_MAIN, "WiFi start/connect failed, continuing without WiFi: %s", esp_err_to_name(err));
+    }
+
     if(xTaskCreate(ButtonHandler::buttonTask, "Button", 2048, &buttonHandler, 3, NULL) != pdPASS){
         ESP_LOGE(TAG_MAIN, "Failed to create Button task, restarting...");
         esp_restart();
@@ -93,28 +100,8 @@ extern "C" void app_main(void) {
     }
 
 
-    constexpr uint16_t maxWifiScanResults = 16;
-    Wifi wifi;
-
     while (true){
-        err = wifi.init();
-        if(err != ESP_OK){
-            ESP_LOGW(TAG_MAIN, "WiFi init failed, retrying in 5 seconds: %s", esp_err_to_name(err));
-        }
-        else{
-            WifiNetwork networks[maxWifiScanResults];
-            uint16_t foundNetworks = 0;
-            err = wifi.scan(networks, maxWifiScanResults, foundNetworks);
-            if(err != ESP_OK){
-                ESP_LOGW(TAG_MAIN, "WiFi scan failed, retrying in 5 seconds: %s", esp_err_to_name(err));
-            }
-            else{
-                const uint16_t displayedNetworks = foundNetworks < maxWifiScanResults ? foundNetworks : maxWifiScanResults;
-                wifi.logScanResults(networks, displayedNetworks, foundNetworks);
-            }
-        }
-
-        vTaskDelay(pdMS_TO_TICKS(5000));
+        vTaskDelay(pdMS_TO_TICKS(100));
     }
     
 }
