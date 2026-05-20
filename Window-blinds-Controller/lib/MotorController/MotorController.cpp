@@ -4,6 +4,28 @@
 
 static const char* TAG = "Motor";
 
+static esp_err_t keepFirstError(esp_err_t firstErr, esp_err_t nextErr){
+    return firstErr == ESP_OK ? nextErr : firstErr;
+}
+
+static int32_t positionFromCount(int32_t startStep, MotorState state, int pcntCount){
+    int64_t position = startStep;
+    if(state == MotorState::UP){
+        position += pcntCount;
+    }
+    else if(state == MotorState::DOWN){
+        position -= pcntCount;
+    }
+
+    if(position > INT_MAX){
+        return INT_MAX;
+    }
+    if(position < INT_MIN){
+        return INT_MIN;
+    }
+    return static_cast<int32_t>(position);
+}
+
 MotorController::MotorController(const MotorPins& pins, BlindsCommandQueue& commandsQueue)
                              : pins_(pins), commandsQueue_(commandsQueue){}
 
@@ -37,8 +59,9 @@ bool IRAM_ATTR MotorController::rmtDoneCallback(rmt_channel_handle_t txChannel,
         return false;
     }
 
+    // ISR work stays minimal: mark completion and wake the refill task.
     taskENTER_CRITICAL_ISR(&self->motorStepMux_);
-    self->completedTransactions_++;
+    self->rmtQueue_.completedTransactions++;
     taskEXIT_CRITICAL_ISR(&self->motorStepMux_);
 
     BaseType_t hpTaskWoken = pdFALSE;
@@ -75,7 +98,7 @@ void MotorController::refillTaskLoop(){
         taskENTER_CRITICAL(&motorStepMux_);
         shouldComplete = motorState_ != MotorState::STOPPED &&
                          reservedPulseCount_ >= targetPulseCount_ &&
-                         activeTransactions_ == 0 &&
+                         rmtQueue_.activeTransactions == 0 &&
                          !limitEventQueued_ &&
                          !abortRequested_;
         taskEXIT_CRITICAL(&motorStepMux_);
@@ -119,6 +142,7 @@ esp_err_t MotorController::configureRmt(){
 }
 
 esp_err_t MotorController::recreateRmtChannel(){
+    // rmt_disable() stops the active transaction but does not purge queued descriptors.
     if(stepChannel_ != nullptr){
         ESP_RETURN_ON_ERROR(rmt_del_channel(stepChannel_), TAG, "RMT channel delete failed");
         stepChannel_ = nullptr;
@@ -172,9 +196,10 @@ esp_err_t MotorController::ensureRmtEnabled(){
 }
 
 esp_err_t MotorController::disableRmtOutput(){
+    // Active transactions can leave stale descriptors in ESP-IDF's internal queue.
     bool shouldRecreateChannel = false;
     taskENTER_CRITICAL(&motorStepMux_);
-    shouldRecreateChannel = activeTransactions_ > 0;
+    shouldRecreateChannel = rmtQueue_.activeTransactions > 0;
     taskEXIT_CRITICAL(&motorStepMux_);
 
     if(rmtMutex_ != nullptr){
@@ -233,22 +258,13 @@ esp_err_t MotorController::stopPcntCounter(){
     return err;
 }
 
-int32_t MotorController::positionFromCount(int32_t startStep, MotorState state, int pcntCount){
-    int64_t position = startStep;
-    if(state == MotorState::UP){
-        position += pcntCount;
-    }
-    else if(state == MotorState::DOWN){
-        position -= pcntCount;
-    }
-
-    if(position > INT_MAX){
-        return INT_MAX;
-    }
-    if(position < INT_MIN){
-        return INT_MIN;
-    }
-    return static_cast<int32_t>(position);
+esp_err_t MotorController::stopPulseHardware(){
+    esp_err_t firstErr = ESP_OK;
+    firstErr = keepFirstError(firstErr, disableRmtOutput());
+    firstErr = keepFirstError(firstErr, refreshPositionFromPcnt());
+    firstErr = keepFirstError(firstErr, stopPcntCounter());
+    firstErr = keepFirstError(firstErr, gpio_set_level(pins_.step, 0));
+    return firstErr;
 }
 
 esp_err_t MotorController::refreshPositionFromPcnt(){
@@ -284,34 +300,33 @@ esp_err_t MotorController::refreshPositionFromPcnt(){
 void MotorController::resetRmtBufferState(){
     taskENTER_CRITICAL(&motorStepMux_);
     for(size_t i = 0; i < rmtBufferCount_; i++){
-        rmtBufferInUse_[i] = false;
-        rmtBufferLengths_[i] = 0;
+        rmtQueue_.bufferInUse[i] = false;
     }
-    nextBufferToQueue_ = 0;
-    nextBufferToRelease_ = 0;
-    activeTransactions_ = 0;
-    releasedTransactions_ = completedTransactions_;
+    rmtQueue_.nextToQueue = 0;
+    rmtQueue_.nextToRelease = 0;
+    rmtQueue_.activeTransactions = 0;
+    rmtQueue_.releasedTransactions = rmtQueue_.completedTransactions;
     taskEXIT_CRITICAL(&motorStepMux_);
 }
 
 void MotorController::releaseCompletedTransactions(){
     taskENTER_CRITICAL(&motorStepMux_);
-    const uint32_t completed = completedTransactions_;
-    while(releasedTransactions_ < completed && activeTransactions_ > 0){
-        rmtBufferInUse_[nextBufferToRelease_] = false;
-        rmtBufferLengths_[nextBufferToRelease_] = 0;
-        nextBufferToRelease_ = static_cast<uint8_t>((nextBufferToRelease_ + 1) % rmtBufferCount_);
-        activeTransactions_--;
-        releasedTransactions_++;
+    const uint32_t completed = rmtQueue_.completedTransactions;
+    while(rmtQueue_.releasedTransactions < completed && rmtQueue_.activeTransactions > 0){
+        rmtQueue_.bufferInUse[rmtQueue_.nextToRelease] = false;
+        rmtQueue_.nextToRelease = static_cast<uint8_t>((rmtQueue_.nextToRelease + 1) % rmtBufferCount_);
+        rmtQueue_.activeTransactions--;
+        rmtQueue_.releasedTransactions++;
     }
 
-    if(activeTransactions_ == 0 && releasedTransactions_ < completed){
-        releasedTransactions_ = completed;
+    if(rmtQueue_.activeTransactions == 0 && rmtQueue_.releasedTransactions < completed){
+        rmtQueue_.releasedTransactions = completed;
     }
     taskEXIT_CRITICAL(&motorStepMux_);
 }
 
 void MotorController::buildPulseSymbols(rmt_symbol_word_t* buffer, size_t pulseCount){
+    // Low-then-high preserves the old initial half-period before the first edge.
     for(size_t i = 0; i < pulseCount; i++){
         const uint32_t lowDurationUs = currentTogglePeriodUs_;
         updateRampAfterStep();
@@ -337,26 +352,26 @@ esp_err_t MotorController::fillRmtQueue(){
         taskENTER_CRITICAL(&motorStepMux_);
         if(motorState_ == MotorState::STOPPED ||
            abortRequested_ ||
-           activeTransactions_ >= rmtBufferCount_ ||
+           rmtQueue_.activeTransactions >= rmtBufferCount_ ||
            reservedPulseCount_ >= targetPulseCount_){
             taskEXIT_CRITICAL(&motorStepMux_);
             return ESP_OK;
         }
 
-        bufferIndex = nextBufferToQueue_;
-        if(rmtBufferInUse_[bufferIndex]){
+        bufferIndex = rmtQueue_.nextToQueue;
+        if(rmtQueue_.bufferInUse[bufferIndex]){
             taskEXIT_CRITICAL(&motorStepMux_);
             return ESP_ERR_INVALID_STATE;
         }
 
         const uint32_t remainingPulses = targetPulseCount_ - reservedPulseCount_;
         pulseCount = remainingPulses < rmtSymbolsPerBuffer_ ? remainingPulses : rmtSymbolsPerBuffer_;
-        buildPulseSymbols(rmtBuffers_[bufferIndex], pulseCount);
-        rmtBufferLengths_[bufferIndex] = pulseCount;
-        rmtBufferInUse_[bufferIndex] = true;
-        activeTransactions_++;
+        // Reserve before transmit so concurrent refills cannot queue past target.
+        buildPulseSymbols(rmtQueue_.buffers[bufferIndex], pulseCount);
+        rmtQueue_.bufferInUse[bufferIndex] = true;
+        rmtQueue_.activeTransactions++;
         reservedPulseCount_ += pulseCount;
-        nextBufferToQueue_ = static_cast<uint8_t>((nextBufferToQueue_ + 1) % rmtBufferCount_);
+        rmtQueue_.nextToQueue = static_cast<uint8_t>((rmtQueue_.nextToQueue + 1) % rmtBufferCount_);
         taskEXIT_CRITICAL(&motorStepMux_);
 
         if(rmtMutex_ != nullptr){
@@ -372,7 +387,7 @@ esp_err_t MotorController::fillRmtQueue(){
         if(canTransmit){
             txRet = rmt_transmit(stepChannel_,
                                  stepEncoder_,
-                                 rmtBuffers_[bufferIndex],
+                                 rmtQueue_.buffers[bufferIndex],
                                  pulseCount * sizeof(rmt_symbol_word_t),
                                  &txConfig);
         }
@@ -409,23 +424,7 @@ esp_err_t MotorController::completeMovementFromTask(){
         return ESP_OK;
     }
 
-    esp_err_t firstErr = ESP_OK;
-    esp_err_t err = disableRmtOutput();
-    if(firstErr == ESP_OK && err != ESP_OK){
-        firstErr = err;
-    }
-    err = refreshPositionFromPcnt();
-    if(firstErr == ESP_OK && err != ESP_OK){
-        firstErr = err;
-    }
-    err = stopPcntCounter();
-    if(firstErr == ESP_OK && err != ESP_OK){
-        firstErr = err;
-    }
-    err = gpio_set_level(pins_.step, 0);
-    if(firstErr == ESP_OK && err != ESP_OK){
-        firstErr = err;
-    }
+    esp_err_t firstErr = stopPulseHardware();
 
     taskENTER_CRITICAL(&motorStepMux_);
     motorState_ = MotorState::STOPPED;
@@ -444,23 +443,7 @@ esp_err_t MotorController::completeMovementFromTask(){
 }
 
 esp_err_t MotorController::failMovementFromTask(){
-    esp_err_t firstErr = ESP_OK;
-    esp_err_t err = disableRmtOutput();
-    if(firstErr == ESP_OK && err != ESP_OK){
-        firstErr = err;
-    }
-    err = refreshPositionFromPcnt();
-    if(firstErr == ESP_OK && err != ESP_OK){
-        firstErr = err;
-    }
-    err = stopPcntCounter();
-    if(firstErr == ESP_OK && err != ESP_OK){
-        firstErr = err;
-    }
-    err = gpio_set_level(pins_.step, 0);
-    if(firstErr == ESP_OK && err != ESP_OK){
-        firstErr = err;
-    }
+    esp_err_t firstErr = stopPulseHardware();
 
     taskENTER_CRITICAL(&motorStepMux_);
     motorState_ = MotorState::STOPPED;
@@ -517,23 +500,7 @@ esp_err_t MotorController::stop(){
     abortRequested_ = true;
     taskEXIT_CRITICAL(&motorStepMux_);
 
-    esp_err_t firstErr = ESP_OK;
-    esp_err_t err = disableRmtOutput();
-    if(firstErr == ESP_OK && err != ESP_OK){
-        firstErr = err;
-    }
-    err = refreshPositionFromPcnt();
-    if(firstErr == ESP_OK && err != ESP_OK){
-        firstErr = err;
-    }
-    err = stopPcntCounter();
-    if(firstErr == ESP_OK && err != ESP_OK){
-        firstErr = err;
-    }
-    err = gpio_set_level(pins_.step, 0);
-    if(firstErr == ESP_OK && err != ESP_OK){
-        firstErr = err;
-    }
+    esp_err_t firstErr = stopPulseHardware();
 
     int32_t getStep = 0;
     taskENTER_CRITICAL(&motorStepMux_);

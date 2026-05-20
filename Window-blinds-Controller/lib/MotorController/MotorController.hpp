@@ -32,6 +32,7 @@ private:
     pcnt_unit_handle_t stepCounter_ = nullptr;
     pcnt_channel_handle_t stepCounterChannel_ = nullptr;
     TaskHandle_t refillTaskHandle_ = nullptr;
+    // Serializes rmt_transmit() against channel recreation after an abort.
     SemaphoreHandle_t rmtMutex_ = nullptr;
 
     MotorState motorState_ = MotorState::STOPPED;
@@ -39,6 +40,7 @@ private:
     int32_t maxStep_ = INT_MAX;
     int32_t targetStep_ = 0;
     int32_t moveStartStep_ = INT_MAX;
+    // Reservation prevents over-queueing; PCNT remains the position source of truth.
     uint32_t targetPulseCount_ = 0;
     uint32_t reservedPulseCount_ = 0;
     uint32_t currentTogglePeriodUs_ = AppConfig::StartTogglePeriodUs;
@@ -49,14 +51,19 @@ private:
     bool limitEventQueued_ = false;
     bool abortRequested_ = false;
 
-    rmt_symbol_word_t rmtBuffers_[rmtBufferCount_][rmtSymbolsPerBuffer_] = {};
-    size_t rmtBufferLengths_[rmtBufferCount_] = {};
-    bool rmtBufferInUse_[rmtBufferCount_] = {};
-    uint8_t nextBufferToQueue_ = 0;
-    uint8_t nextBufferToRelease_ = 0;
-    uint8_t activeTransactions_ = 0;
-    uint32_t completedTransactions_ = 0;
-    uint32_t releasedTransactions_ = 0;
+    struct RmtQueueState{
+        // Payload memory must remain valid until the transaction-done callback fires.
+        rmt_symbol_word_t buffers[rmtBufferCount_][rmtSymbolsPerBuffer_] = {};
+        bool bufferInUse[rmtBufferCount_] = {};
+        uint8_t nextToQueue = 0;
+        uint8_t nextToRelease = 0;
+        // RMT completion does not identify payloads, so buffers are released FIFO.
+        uint8_t activeTransactions = 0;
+        uint32_t completedTransactions = 0;
+        uint32_t releasedTransactions = 0;
+    };
+
+    RmtQueueState rmtQueue_;
 
     BlindsCommandQueue& commandsQueue_;
     mutable portMUX_TYPE motorStepMux_ = portMUX_INITIALIZER_UNLOCKED;
@@ -74,8 +81,8 @@ private:
     esp_err_t disableRmtOutput();
     esp_err_t startPcntCounter();
     esp_err_t stopPcntCounter();
+    esp_err_t stopPulseHardware();
     esp_err_t refreshPositionFromPcnt();
-    static int32_t positionFromCount(int32_t startStep, MotorState state, int pcntCount);
     void resetRmtBufferState();
     void releaseCompletedTransactions();
     void buildPulseSymbols(rmt_symbol_word_t* buffer, size_t pulseCount);
