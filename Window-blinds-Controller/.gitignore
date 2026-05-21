@@ -4,4 +4,4 @@
 .vscode/launch.json
 .vscode/ipch
 
-lib/Connection/WifiSecrets.hpp
+lib/Connection/ConnSecrets.hpp
