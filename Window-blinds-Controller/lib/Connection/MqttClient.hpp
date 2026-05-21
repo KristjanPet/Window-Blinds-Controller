@@ -6,11 +6,14 @@
 #include <freertos/event_groups.h>
 #include <freertos/task.h>
 
+class BlindsCommandQueue;
+
 class MqttClient{
 private:
     static constexpr uint32_t startTaskStack_ = 3072;
     static constexpr UBaseType_t startTaskPriority_ = 2;
 
+    BlindsCommandQueue& commandQueue_;
     esp_mqtt_client_handle_t client_ = nullptr;
     EventGroupHandle_t wifiEvents_ = nullptr;
     TaskHandle_t startTaskHandle_ = nullptr;
@@ -23,6 +26,7 @@ private:
     void handleMqttEvent(esp_mqtt_event_id_t eventId, esp_mqtt_event_handle_t event);
 
 public:
+    explicit MqttClient(BlindsCommandQueue& commandQueue);
     esp_err_t init(const char* brokerUri, const char* username, const char* password);
     esp_err_t start(EventGroupHandle_t wifiEvents);
 };

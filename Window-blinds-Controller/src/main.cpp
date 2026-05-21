@@ -74,7 +74,7 @@ extern "C" void app_main(void) {
         ESP_LOGW(TAG_MAIN, "WiFi start/connect failed, continuing without WiFi: %s", esp_err_to_name(err));
     }
 
-    MqttClient mqtt;
+    MqttClient mqtt(commandsQueue);
     err = mqtt.init(ConnSecrets::mqttBrokerUri, ConnSecrets::mqttUsername, ConnSecrets::mqttPassword);
     if(err != ESP_OK){
         ESP_LOGW(TAG_MAIN, "MQTT init failed, continuing without MQTT: %s", esp_err_to_name(err));
