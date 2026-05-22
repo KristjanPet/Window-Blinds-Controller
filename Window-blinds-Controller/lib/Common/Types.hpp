@@ -1,16 +1,23 @@
 #pragma once
+#include <cstdint>
 #include <driver/gpio.h>
 
 enum class BlindsEvent{
     STOP,
     UP,
     DOWN,
+    MOVE_TO_PERCENT,
     LIMIT_REACHED,
     CALIBRATE,
     HOMING_REACHED,
     STALL_DETECTED,
     HOMING_CHECK,
     FAULT
+};
+
+struct BlindsCommand{
+    BlindsEvent event;
+    uint8_t percent;
 };
 
 struct MotorPins{

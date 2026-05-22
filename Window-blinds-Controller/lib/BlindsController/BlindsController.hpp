@@ -30,11 +30,15 @@ private:
     void resetNormalStallRecovery();
     esp_err_t handleNormalStall(int32_t currentStep);
     esp_err_t retryStallRecoveryTarget();
+    esp_err_t targetStepFromPercent(uint8_t percent, int32_t& targetStep) const;
+    esp_err_t moveToTargetStep(int32_t targetStep);
+    esp_err_t handleMoveToPercent(uint8_t percent);
     
 public:
     BlindsController(IMotor& motor, BlindsCommandQueue& commandQueue);
     static void handleCommandTask(void* arg);
     esp_err_t handleCommand(BlindsEvent cmd);
+    esp_err_t handleCommand(const BlindsCommand& command);
     BlindsState getState() const;
     void setState(BlindsState state);
 };

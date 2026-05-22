@@ -6,6 +6,8 @@
 #include <freertos/event_groups.h>
 #include <freertos/task.h>
 
+#include "Types.hpp"
+
 class BlindsCommandQueue;
 
 class MqttClient{
@@ -27,6 +29,7 @@ private:
 
 public:
     explicit MqttClient(BlindsCommandQueue& commandQueue);
+    static bool parseCommandPayload(const char* data, int dataLen, BlindsCommand& command);
     esp_err_t init(const char* brokerUri, const char* username, const char* password);
     esp_err_t start(EventGroupHandle_t wifiEvents);
 };

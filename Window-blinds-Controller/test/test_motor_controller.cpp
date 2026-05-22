@@ -1,11 +1,13 @@
 #include <unity.h>
 #include <climits>
+#include <cstring>
 
 #include "fakes/FakeMotor.hpp"
 #include "AppConfig.hpp"
 #include "BlindsController.hpp"
 #include "BlindsCommandQueue.hpp"
 #include "MotorController.hpp"
+#include "MqttClient.hpp"
 
 void setUp(void) {}
 void tearDown(void) {}
@@ -17,6 +19,14 @@ static void complete_up_stall_recovery(BlindsController& blinds, FakeMotor& fMot
     TEST_ASSERT_EQUAL(BlindsState::STALL_RECOVERY, blinds.getState());
     TEST_ASSERT_EQUAL(ESP_OK, blinds.handleCommand(BlindsEvent::LIMIT_REACHED));
     TEST_ASSERT_EQUAL(BlindsState::MOVING_UP, blinds.getState());
+}
+
+static BlindsCommand percentCommand(uint8_t percent){
+    return {BlindsEvent::MOVE_TO_PERCENT, percent};
+}
+
+static bool parseMqttPayload(const char* payload, BlindsCommand& command){
+    return MqttClient::parseCommandPayload(payload, static_cast<int>(std::strlen(payload)), command);
 }
 
 void test_motor_moving_up(void){
@@ -581,6 +591,151 @@ void test_blinds_state_fault_limit_reached(void){
     TEST_ASSERT_EQUAL(LastAction::NONE, fMotor.getLastAction());
 }
 
+void test_percent_target_moves_up_with_rounding(void){
+    FakeMotor fMotor;
+    BlindsCommandQueue queue;
+    BlindsController blinds(fMotor, queue);
+
+    fMotor.setMaxStepValue(101);
+    fMotor.setCurrentStep(20);
+
+    TEST_ASSERT_EQUAL(ESP_OK, blinds.handleCommand(percentCommand(50)));
+    TEST_ASSERT_EQUAL(BlindsState::MOVING_UP, blinds.getState());
+    TEST_ASSERT_EQUAL(LastAction::UP, fMotor.getLastAction());
+    TEST_ASSERT_EQUAL(51, fMotor.getLastTargetStep());
+}
+
+void test_percent_target_moves_down(void){
+    FakeMotor fMotor;
+    BlindsCommandQueue queue;
+    BlindsController blinds(fMotor, queue);
+
+    fMotor.setMaxStepValue(20000);
+    fMotor.setCurrentStep(15000);
+
+    TEST_ASSERT_EQUAL(ESP_OK, blinds.handleCommand(percentCommand(25)));
+    TEST_ASSERT_EQUAL(BlindsState::MOVING_DOWN, blinds.getState());
+    TEST_ASSERT_EQUAL(LastAction::DOWN, fMotor.getLastAction());
+    TEST_ASSERT_EQUAL(5000, fMotor.getLastTargetStep());
+}
+
+void test_percent_endpoint_targets_use_zero_and_max(void){
+    {
+        FakeMotor fMotor;
+        BlindsCommandQueue queue;
+        BlindsController blinds(fMotor, queue);
+
+        fMotor.setMaxStepValue(12000);
+        fMotor.setCurrentStep(6000);
+
+        TEST_ASSERT_EQUAL(ESP_OK, blinds.handleCommand(percentCommand(0)));
+        TEST_ASSERT_EQUAL(BlindsState::MOVING_DOWN, blinds.getState());
+        TEST_ASSERT_EQUAL(0, fMotor.getLastTargetStep());
+    }
+
+    {
+        FakeMotor fMotor;
+        BlindsCommandQueue queue;
+        BlindsController blinds(fMotor, queue);
+
+        fMotor.setMaxStepValue(12000);
+        fMotor.setCurrentStep(6000);
+
+        TEST_ASSERT_EQUAL(ESP_OK, blinds.handleCommand(percentCommand(100)));
+        TEST_ASSERT_EQUAL(BlindsState::MOVING_UP, blinds.getState());
+        TEST_ASSERT_EQUAL(12000, fMotor.getLastTargetStep());
+    }
+}
+
+void test_percent_target_rejected_before_calibrated_max(void){
+    FakeMotor fMotor;
+    BlindsCommandQueue queue;
+    BlindsController blinds(fMotor, queue);
+
+    TEST_ASSERT_EQUAL(ESP_ERR_INVALID_STATE, blinds.handleCommand(percentCommand(50)));
+    TEST_ASSERT_EQUAL(BlindsState::IDLE, blinds.getState());
+    TEST_ASSERT_EQUAL(LastAction::NONE, fMotor.getLastAction());
+}
+
+void test_percent_command_retargets_while_moving(void){
+    FakeMotor fMotor;
+    BlindsCommandQueue queue;
+    BlindsController blinds(fMotor, queue);
+
+    fMotor.setMaxStepValue(20000);
+    fMotor.setCurrentStep(1000);
+    TEST_ASSERT_EQUAL(ESP_OK, blinds.handleCommand(percentCommand(80)));
+
+    fMotor.setCurrentStep(4000);
+    TEST_ASSERT_EQUAL(ESP_OK, blinds.handleCommand(percentCommand(10)));
+
+    TEST_ASSERT_EQUAL(BlindsState::MOVING_DOWN, blinds.getState());
+    TEST_ASSERT_EQUAL(LastAction::DOWN, fMotor.getLastAction());
+    TEST_ASSERT_EQUAL(2000, fMotor.getLastTargetStep());
+    TEST_ASSERT_EQUAL_UINT32(1, fMotor.getStopCalls());
+    TEST_ASSERT_EQUAL_UINT32(2, fMotor.getMoveCalls());
+}
+
+void test_percent_retarget_stop_failure_enters_fault(void){
+    FakeMotor fMotor;
+    BlindsCommandQueue queue;
+    BlindsController blinds(fMotor, queue);
+
+    fMotor.setMaxStepValue(20000);
+    fMotor.setCurrentStep(1000);
+    TEST_ASSERT_EQUAL(ESP_OK, blinds.handleCommand(percentCommand(80)));
+    fMotor.setNextStopResult(ESP_FAIL);
+
+    TEST_ASSERT_EQUAL(ESP_FAIL, blinds.handleCommand(percentCommand(10)));
+    TEST_ASSERT_EQUAL(BlindsState::FAULT, blinds.getState());
+    TEST_ASSERT_EQUAL(LastAction::STOP, fMotor.getLastAction());
+}
+
+void test_percent_during_calibration_stops_and_enters_fault(void){
+    FakeMotor fMotor;
+    BlindsCommandQueue queue;
+    BlindsController blinds(fMotor, queue);
+
+    blinds.setState(BlindsState::CALIBRATING_HOME);
+
+    TEST_ASSERT_EQUAL(ESP_OK, blinds.handleCommand(percentCommand(50)));
+    TEST_ASSERT_EQUAL(BlindsState::FAULT, blinds.getState());
+    TEST_ASSERT_EQUAL(LastAction::STOP, fMotor.getLastAction());
+}
+
+void test_mqtt_parser_accepts_numeric_percentage(void){
+    BlindsCommand command = {BlindsEvent::STOP, 0};
+
+    TEST_ASSERT_TRUE(parseMqttPayload("42", command));
+    TEST_ASSERT_EQUAL(BlindsEvent::MOVE_TO_PERCENT, command.event);
+    TEST_ASSERT_EQUAL_UINT8(42, command.percent);
+}
+
+void test_mqtt_parser_accepts_aliases_and_whitespace(void){
+    BlindsCommand command = {BlindsEvent::STOP, 0};
+
+    TEST_ASSERT_TRUE(parseMqttPayload(" up ", command));
+    TEST_ASSERT_EQUAL(BlindsEvent::MOVE_TO_PERCENT, command.event);
+    TEST_ASSERT_EQUAL_UINT8(100, command.percent);
+
+    TEST_ASSERT_TRUE(parseMqttPayload("DOWN", command));
+    TEST_ASSERT_EQUAL(BlindsEvent::MOVE_TO_PERCENT, command.event);
+    TEST_ASSERT_EQUAL_UINT8(0, command.percent);
+
+    TEST_ASSERT_TRUE(parseMqttPayload("\tstop\n", command));
+    TEST_ASSERT_EQUAL(BlindsEvent::STOP, command.event);
+}
+
+void test_mqtt_parser_rejects_invalid_percentage_payloads(void){
+    BlindsCommand command = {BlindsEvent::STOP, 0};
+
+    TEST_ASSERT_FALSE(parseMqttPayload("", command));
+    TEST_ASSERT_FALSE(parseMqttPayload("101", command));
+    TEST_ASSERT_FALSE(parseMqttPayload("-1", command));
+    TEST_ASSERT_FALSE(parseMqttPayload("4.2", command));
+    TEST_ASSERT_FALSE(parseMqttPayload("42%", command));
+}
+
 void test_motor_rejects_negative_concrete_target(void){
     BlindsCommandQueue queue;
     MotorController motor(AppConfig::motorPins, queue);
@@ -638,6 +793,16 @@ extern "C" void app_main(void) {
     RUN_TEST(test_blinds_state_fault_down);
     RUN_TEST(test_blinds_state_fault_stop);
     RUN_TEST(test_blinds_state_fault_limit_reached);
+    RUN_TEST(test_percent_target_moves_up_with_rounding);
+    RUN_TEST(test_percent_target_moves_down);
+    RUN_TEST(test_percent_endpoint_targets_use_zero_and_max);
+    RUN_TEST(test_percent_target_rejected_before_calibrated_max);
+    RUN_TEST(test_percent_command_retargets_while_moving);
+    RUN_TEST(test_percent_retarget_stop_failure_enters_fault);
+    RUN_TEST(test_percent_during_calibration_stops_and_enters_fault);
+    RUN_TEST(test_mqtt_parser_accepts_numeric_percentage);
+    RUN_TEST(test_mqtt_parser_accepts_aliases_and_whitespace);
+    RUN_TEST(test_mqtt_parser_rejects_invalid_percentage_payloads);
     RUN_TEST(test_motor_rejects_negative_concrete_target);
     RUN_TEST(test_motor_rejects_target_above_configured_max);
 

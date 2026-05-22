@@ -122,21 +122,91 @@ esp_err_t BlindsController::handleNormalStall(int32_t currentStep){
     return err;
 }
 
+esp_err_t BlindsController::targetStepFromPercent(uint8_t percent, int32_t& targetStep) const{
+    if(percent > 100){
+        return ESP_ERR_INVALID_ARG;
+    }
+
+    const int32_t maxStep = motor_.getMaxStep();
+    if(maxStep == INT_MAX || maxStep <= 0){
+        ESP_LOGW(TAG, "Ignoring percentage command before calibrated max: max=%d", maxStep);
+        return ESP_ERR_INVALID_STATE;
+    }
+
+    const int64_t scaled = static_cast<int64_t>(maxStep) * static_cast<int64_t>(percent);
+    targetStep = static_cast<int32_t>((scaled + 50) / 100);
+    return ESP_OK;
+}
+
+esp_err_t BlindsController::moveToTargetStep(int32_t targetStep){
+    const int32_t currentStep = motor_.getCurrentStep();
+    const esp_err_t err = motor_.move(targetStep);
+    if(err == ESP_OK){
+        resetNormalStallRecovery();
+        activeTargetStep_ = targetStep;
+        hasActiveTarget_ = true;
+        state_ = targetStep >= currentStep ? BlindsState::MOVING_UP : BlindsState::MOVING_DOWN;
+    }
+    else{
+        ESP_LOGE(TAG, "Error moving to target step %d: %s", targetStep, esp_err_to_name(err));
+    }
+
+    return err;
+}
+
+esp_err_t BlindsController::handleMoveToPercent(uint8_t percent){
+    if(state_ == BlindsState::FAULT){
+        ESP_LOGE(TAG, "Blinds state is FAULT");
+        return ESP_ERR_INVALID_STATE;
+    }
+
+    if(state_ == BlindsState::CALIBRATING_HOME || state_ == BlindsState::CALIBRATING_MAX){
+        const esp_err_t err = motor_.stop();
+        ESP_LOGE(TAG, "Blinds state set to FAULT");
+        state_ = BlindsState::FAULT;
+        return err;
+    }
+
+    int32_t targetStep = 0;
+    esp_err_t err = targetStepFromPercent(percent, targetStep);
+    if(err != ESP_OK){
+        return err;
+    }
+
+    if(state_ == BlindsState::MOVING_DOWN || state_ == BlindsState::MOVING_UP ||
+       state_ == BlindsState::STALL_RECOVERY){
+        err = motor_.stop();
+        if(err != ESP_OK){
+            state_ = BlindsState::FAULT;
+            ESP_LOGE(TAG, "Error stopping before percentage move: %s", esp_err_to_name(err));
+            return err;
+        }
+        resetNormalStallRecovery();
+        state_ = BlindsState::IDLE;
+    }
+
+    return moveToTargetStep(targetStep);
+}
+
 void BlindsController::handleCommandTask(void* arg){ //using toggle style
     auto* self = static_cast<BlindsController*>(arg);
-    BlindsEvent cmd;
+    BlindsCommand command = {BlindsEvent::STOP, 0};
 
     while(true){
-        if(self->commandsQueue_.receive(cmd) == pdTRUE){
-            self->handleCommand(cmd);
+        if(self->commandsQueue_.receive(command) == pdTRUE){
+            self->handleCommand(command);
         }
     }
 }
 
 esp_err_t BlindsController::handleCommand(BlindsEvent cmd){
+    return handleCommand({cmd, 0});
+}
+
+esp_err_t BlindsController::handleCommand(const BlindsCommand& command){
     esp_err_t err = ESP_OK;
 
-    switch (cmd){
+    switch (command.event){
     case BlindsEvent::STOP:
         err = motor_.stop();
         if(err == ESP_OK ){
@@ -211,6 +281,9 @@ esp_err_t BlindsController::handleCommand(BlindsEvent cmd){
             ESP_LOGE(TAG, "Blinds state is FAULT");
             err = ESP_ERR_INVALID_STATE;
         }
+        break;
+    case BlindsEvent::MOVE_TO_PERCENT:
+        err = handleMoveToPercent(command.percent);
         break;
     case BlindsEvent::LIMIT_REACHED: //soft low or top limit reached
         if(state_ == BlindsState::STALL_RECOVERY){

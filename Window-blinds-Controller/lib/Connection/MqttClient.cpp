@@ -39,7 +39,7 @@ static bool tokenEqualsIgnoreCase(const char* data, int len, const char* token){
     return true;
 }
 
-static bool parseCommandPayload(const char* data, int dataLen, BlindsEvent& command){
+bool MqttClient::parseCommandPayload(const char* data, int dataLen, BlindsCommand& command){
     if(data == nullptr || dataLen <= 0){
         return false;
     }
@@ -54,21 +54,38 @@ static bool parseCommandPayload(const char* data, int dataLen, BlindsEvent& comm
     }
 
     const int len = end - start;
+    if(len <= 0){
+        return false;
+    }
+
     const char* token = data + start;
     if(tokenEqualsIgnoreCase(token, len, "up")){
-        command = BlindsEvent::UP;
+        command = {BlindsEvent::MOVE_TO_PERCENT, 100};
         return true;
     }
     if(tokenEqualsIgnoreCase(token, len, "down")){
-        command = BlindsEvent::DOWN;
+        command = {BlindsEvent::MOVE_TO_PERCENT, 0};
         return true;
     }
     if(tokenEqualsIgnoreCase(token, len, "stop")){
-        command = BlindsEvent::STOP;
+        command = {BlindsEvent::STOP, 0};
         return true;
     }
 
-    return false;
+    uint16_t percent = 0;
+    for(int i = 0; i < len; ++i){
+        if(token[i] < '0' || token[i] > '9'){
+            return false;
+        }
+
+        percent = static_cast<uint16_t>(percent * 10U + static_cast<uint16_t>(token[i] - '0'));
+        if(percent > 100){
+            return false;
+        }
+    }
+
+    command = {BlindsEvent::MOVE_TO_PERCENT, static_cast<uint8_t>(percent)};
+    return true;
 }
 
 static const char* commandName(BlindsEvent command){
@@ -77,6 +94,8 @@ static const char* commandName(BlindsEvent command){
         return "up";
     case BlindsEvent::DOWN:
         return "down";
+    case BlindsEvent::MOVE_TO_PERCENT:
+        return "move_to_percent";
     case BlindsEvent::STOP:
         return "stop";
     default:
@@ -210,17 +229,20 @@ void MqttClient::handleMqttEvent(esp_mqtt_event_id_t eventId, esp_mqtt_event_han
             break;
         }
 
-        BlindsEvent command = BlindsEvent::STOP;
+        BlindsCommand command = {BlindsEvent::STOP, 0};
         if(!parseCommandPayload(event->data, event->data_len, command)){
             ESP_LOGW(TAG_MQTT, "Ignoring invalid MQTT command");
             break;
         }
 
         if(commandQueue_.send(command, 0) != pdTRUE){
-            ESP_LOGE(TAG_MQTT, "Failed to queue MQTT command: %s", commandName(command));
+            ESP_LOGE(TAG_MQTT, "Failed to queue MQTT command: %s", commandName(command.event));
+        }
+        else if(command.event == BlindsEvent::MOVE_TO_PERCENT){
+            ESP_LOGI(TAG_MQTT, "Queued MQTT command: %u%%", static_cast<unsigned>(command.percent));
         }
         else{
-            ESP_LOGI(TAG_MQTT, "Queued MQTT command: %s", commandName(command));
+            ESP_LOGI(TAG_MQTT, "Queued MQTT command: %s", commandName(command.event));
         }
         break;
     }
