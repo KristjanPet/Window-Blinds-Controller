@@ -18,7 +18,7 @@ namespace AppConfig{
 
     //Blinds settings
     constexpr int32_t offsetOfMaxStep = 800; //offset from stall detected
-    constexpr int32_t offsetOfMinStep = 800; //offset from home detected
+    constexpr int32_t offsetOfMinStep = 1000; //offset from home detected
     constexpr int32_t normalStallBackoffSteps = 1000 * 10;
     constexpr uint8_t normalStallMaxRecoveries = 3;
     constexpr int32_t stepStallThrehold = 1000 * 63;
@@ -35,6 +35,14 @@ namespace AppConfig{
     //buttons settings
     constexpr ButtonPins buttonPins = {GPIO_NUM_33, GPIO_NUM_32}; //up, down
     constexpr uint8_t debouncTime = 30; //mS
+
+    //MQTT settings
+    constexpr const char* mqttClientId = "window-blinds-controller";
+    constexpr const char* mqttCommandTopic = "window-blinds/command";
+    constexpr const char* mqttStatusTopic = "window-blinds/status";
+    constexpr int mqttQos = 0;
+    constexpr bool mqttRetain = false;
+    static_assert(mqttQos >= 0 && mqttQos <= 2, "mqttQos must be 0, 1, or 2");
 
     //home/reference sensor settings
     constexpr gpio_num_t homeSensorPin = GPIO_NUM_18;

@@ -10,6 +10,9 @@
 #include "BlindsCommandQueue.hpp"
 #include "Tmc2209Driver.hpp"
 #include "AppConfig.hpp"
+#include "Wifi.hpp"
+#include "MqttClient.hpp"
+#include "ConnSecrets.hpp"
 
 static const char *TAG_MAIN = "MAIN";
 
@@ -65,6 +68,24 @@ extern "C" void app_main(void) {
         esp_restart();
     };
 
+    Wifi wifi;
+    err = wifi.startAndConnect(ConnSecrets::wifiSsid, ConnSecrets::wifiPassword);
+    if(err != ESP_OK){
+        ESP_LOGW(TAG_MAIN, "WiFi start/connect failed, continuing without WiFi: %s", esp_err_to_name(err));
+    }
+
+    MqttClient mqtt(commandsQueue);
+    err = mqtt.init(ConnSecrets::mqttBrokerUri, ConnSecrets::mqttUsername, ConnSecrets::mqttPassword);
+    if(err != ESP_OK){
+        ESP_LOGW(TAG_MAIN, "MQTT init failed, continuing without MQTT: %s", esp_err_to_name(err));
+    }
+    else{
+        err = mqtt.start(wifi.connectionEvents());
+        if(err != ESP_OK){
+            ESP_LOGW(TAG_MAIN, "MQTT start failed, continuing without MQTT: %s", esp_err_to_name(err));
+        }
+    }
+
     if(xTaskCreate(ButtonHandler::buttonTask, "Button", 2048, &buttonHandler, 3, NULL) != pdPASS){
         ESP_LOGE(TAG_MAIN, "Failed to create Button task, restarting...");
         esp_restart();
@@ -90,6 +111,7 @@ extern "C" void app_main(void) {
         ESP_LOGE(TAG_MAIN, "Failed to start calibrating, restarting...");
         esp_restart();
     }
+
 
     while (true){
         vTaskDelay(pdMS_TO_TICKS(100));
