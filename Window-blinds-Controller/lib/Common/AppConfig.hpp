@@ -18,7 +18,7 @@ namespace AppConfig{
 
     //Blinds settings
     constexpr int32_t offsetOfMaxStep = 800; //offset from stall detected
-    constexpr int32_t offsetOfMinStep = 800; //offset from home detected
+    constexpr int32_t offsetOfMinStep = 1000; //offset from home detected
     constexpr int32_t normalStallBackoffSteps = 1000 * 10;
     constexpr uint8_t normalStallMaxRecoveries = 3;
     constexpr int32_t stepStallThrehold = 1000 * 63;
