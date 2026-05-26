@@ -4,6 +4,7 @@
 
 #include "fakes/FakeMotor.hpp"
 #include "AppConfig.hpp"
+#include "FaultHandler.hpp"
 #include "BlindsController.hpp"
 #include "BlindsCommandQueue.hpp"
 #include "MotorController.hpp"
@@ -29,10 +30,64 @@ static bool parseMqttPayload(const char* payload, BlindsCommand& command){
     return MqttClient::parseCommandPayload(payload, static_cast<int>(std::strlen(payload)), command);
 }
 
+static void assertFault(const FaultHandler& faults,
+                        FaultSource source,
+                        FaultReason reason,
+                        esp_err_t espErr){
+    FaultRecord fault = {FaultSource::BlindsController, FaultReason::None, ESP_OK};
+
+    TEST_ASSERT_TRUE(faults.getFault(fault));
+    TEST_ASSERT_EQUAL(source, fault.source);
+    TEST_ASSERT_EQUAL(reason, fault.reason);
+    TEST_ASSERT_EQUAL(espErr, fault.espErr);
+}
+
+void test_fault_handler_starts_empty(void){
+    FaultHandler faults;
+    FaultRecord fault = {FaultSource::BlindsController, FaultReason::None, ESP_OK};
+
+    TEST_ASSERT_FALSE(faults.hasFault());
+    TEST_ASSERT_FALSE(faults.getFault(fault));
+}
+
+void test_fault_handler_records_fault(void){
+    FaultHandler faults;
+
+    faults.record(FaultSource::MotorController, FaultReason::RmtRefillFailed, ESP_FAIL);
+
+    assertFault(faults, FaultSource::MotorController, FaultReason::RmtRefillFailed, ESP_FAIL);
+}
+
+void test_fault_handler_preserves_first_fault(void){
+    FaultHandler faults;
+
+    faults.record(FaultSource::BlindsController, FaultReason::MotorStopFailed, ESP_ERR_INVALID_STATE);
+    faults.record(FaultSource::MotorController, FaultReason::MovementCompletionFailed, ESP_FAIL);
+
+    assertFault(faults,
+                FaultSource::BlindsController,
+                FaultReason::MotorStopFailed,
+                ESP_ERR_INVALID_STATE);
+}
+
+void test_command_queue_overflow_records_fault(void){
+    FaultHandler faults;
+    BlindsCommandQueue queue(faults);
+
+    TEST_ASSERT_EQUAL(ESP_OK, queue.init());
+    for(uint8_t i = 0; i < AppConfig::commandsQueueDepth; ++i){
+        TEST_ASSERT_EQUAL(pdTRUE, queue.send(BlindsEvent::STOP));
+    }
+
+    TEST_ASSERT_EQUAL(pdFALSE, queue.send(BlindsEvent::UP));
+    assertFault(faults, FaultSource::CommandQueue, FaultReason::CommandQueueOverflow, ESP_FAIL);
+}
+
 void test_motor_moving_up(void){
     FakeMotor fMotor;
-    BlindsCommandQueue queue;
-    BlindsController blinds(fMotor, queue);
+    FaultHandler faults;
+    BlindsCommandQueue queue(faults);
+    BlindsController blinds(fMotor, queue, faults);
 
     TEST_ASSERT_EQUAL(ESP_OK, blinds.handleCommand(BlindsEvent::UP));
     TEST_ASSERT_EQUAL(BlindsState::MOVING_UP, blinds.getState());
@@ -42,8 +97,9 @@ void test_motor_moving_up(void){
 
 void test_motor_moving_down(void){
     FakeMotor fMotor;
-    BlindsCommandQueue queue;
-    BlindsController blinds(fMotor, queue);
+    FaultHandler faults;
+    BlindsCommandQueue queue(faults);
+    BlindsController blinds(fMotor, queue, faults);
 
     TEST_ASSERT_EQUAL(ESP_OK, blinds.handleCommand(BlindsEvent::DOWN));
     TEST_ASSERT_EQUAL(BlindsState::MOVING_DOWN, blinds.getState());
@@ -53,8 +109,9 @@ void test_motor_moving_down(void){
 
 void test_same_button_toggle_up(void){
     FakeMotor fMotor;
-    BlindsCommandQueue queue;
-    BlindsController blinds(fMotor, queue);
+    FaultHandler faults;
+    BlindsCommandQueue queue(faults);
+    BlindsController blinds(fMotor, queue, faults);
 
     TEST_ASSERT_EQUAL(ESP_OK, blinds.handleCommand(BlindsEvent::UP));
     TEST_ASSERT_EQUAL(ESP_OK, blinds.handleCommand(BlindsEvent::UP));
@@ -64,8 +121,9 @@ void test_same_button_toggle_up(void){
 
 void test_same_button_toggle_down(void){
     FakeMotor fMotor;
-    BlindsCommandQueue queue;
-    BlindsController blinds(fMotor, queue);
+    FaultHandler faults;
+    BlindsCommandQueue queue(faults);
+    BlindsController blinds(fMotor, queue, faults);
 
     TEST_ASSERT_EQUAL(ESP_OK, blinds.handleCommand(BlindsEvent::DOWN));
     TEST_ASSERT_EQUAL(ESP_OK, blinds.handleCommand(BlindsEvent::DOWN));
@@ -75,8 +133,9 @@ void test_same_button_toggle_down(void){
 
 void test_toggle_style_up_down(void){
     FakeMotor fMotor;
-    BlindsCommandQueue queue;
-    BlindsController blinds(fMotor, queue);
+    FaultHandler faults;
+    BlindsCommandQueue queue(faults);
+    BlindsController blinds(fMotor, queue, faults);
 
     TEST_ASSERT_EQUAL(ESP_OK, blinds.handleCommand(BlindsEvent::UP));
     TEST_ASSERT_EQUAL(ESP_OK, blinds.handleCommand(BlindsEvent::DOWN));
@@ -86,8 +145,9 @@ void test_toggle_style_up_down(void){
 
 void test_toggle_style_down_up(void){
     FakeMotor fMotor;
-    BlindsCommandQueue queue;
-    BlindsController blinds(fMotor, queue);
+    FaultHandler faults;
+    BlindsCommandQueue queue(faults);
+    BlindsController blinds(fMotor, queue, faults);
 
     TEST_ASSERT_EQUAL(ESP_OK, blinds.handleCommand(BlindsEvent::DOWN));
     TEST_ASSERT_EQUAL(ESP_OK, blinds.handleCommand(BlindsEvent::UP));
@@ -97,8 +157,9 @@ void test_toggle_style_down_up(void){
 
 void test_normal_stop_while_moving_up(void){
     FakeMotor fMotor;
-    BlindsCommandQueue queue;
-    BlindsController blinds(fMotor, queue);
+    FaultHandler faults;
+    BlindsCommandQueue queue(faults);
+    BlindsController blinds(fMotor, queue, faults);
 
     TEST_ASSERT_EQUAL(ESP_OK, blinds.handleCommand(BlindsEvent::UP));
     TEST_ASSERT_EQUAL(ESP_OK, blinds.handleCommand(BlindsEvent::STOP));
@@ -108,8 +169,9 @@ void test_normal_stop_while_moving_up(void){
 
 void test_stop_failure_while_moving_up(void){
     FakeMotor fMotor;
-    BlindsCommandQueue queue;
-    BlindsController blinds(fMotor, queue);
+    FaultHandler faults;
+    BlindsCommandQueue queue(faults);
+    BlindsController blinds(fMotor, queue, faults);
 
     TEST_ASSERT_EQUAL(ESP_OK, blinds.handleCommand(BlindsEvent::UP));
     fMotor.setNextResult(ESP_ERR_INVALID_ARG);
@@ -121,8 +183,9 @@ void test_stop_failure_while_moving_up(void){
 
 void test_limit_reached_stops_and_sets_idle(void){
     FakeMotor fMotor;
-    BlindsCommandQueue queue;
-    BlindsController blinds(fMotor, queue);
+    FaultHandler faults;
+    BlindsCommandQueue queue(faults);
+    BlindsController blinds(fMotor, queue, faults);
 
     TEST_ASSERT_EQUAL(ESP_OK, blinds.handleCommand(BlindsEvent::UP));
     TEST_ASSERT_EQUAL(ESP_OK, blinds.handleCommand(BlindsEvent::LIMIT_REACHED));
@@ -132,8 +195,9 @@ void test_limit_reached_stops_and_sets_idle(void){
 
 void test_limit_reached_stop_failure_enters_fault(void){
     FakeMotor fMotor;
-    BlindsCommandQueue queue;
-    BlindsController blinds(fMotor, queue);
+    FaultHandler faults;
+    BlindsCommandQueue queue(faults);
+    BlindsController blinds(fMotor, queue, faults);
 
     TEST_ASSERT_EQUAL(ESP_OK, blinds.handleCommand(BlindsEvent::UP));
     fMotor.setNextResult(ESP_ERR_INVALID_ARG);
@@ -141,12 +205,17 @@ void test_limit_reached_stop_failure_enters_fault(void){
     TEST_ASSERT_EQUAL(ESP_ERR_INVALID_ARG, blinds.handleCommand(BlindsEvent::LIMIT_REACHED));
     TEST_ASSERT_EQUAL(BlindsState::FAULT, blinds.getState());
     TEST_ASSERT_EQUAL(LastAction::STOP, fMotor.getLastAction());
+    assertFault(faults,
+                FaultSource::BlindsController,
+                FaultReason::MotorStopFailed,
+                ESP_ERR_INVALID_ARG);
 }
 
 void test_up_stall_backs_off_and_enters_recovery(void){
     FakeMotor fMotor;
-    BlindsCommandQueue queue;
-    BlindsController blinds(fMotor, queue);
+    FaultHandler faults;
+    BlindsCommandQueue queue(faults);
+    BlindsController blinds(fMotor, queue, faults);
 
     fMotor.setCurrentStep(10000);
 
@@ -160,8 +229,9 @@ void test_up_stall_backs_off_and_enters_recovery(void){
 
 void test_down_stall_backs_off_clamped_to_max_and_enters_recovery(void){
     FakeMotor fMotor;
-    BlindsCommandQueue queue;
-    BlindsController blinds(fMotor, queue);
+    FaultHandler faults;
+    BlindsCommandQueue queue(faults);
+    BlindsController blinds(fMotor, queue, faults);
 
     fMotor.setMaxStepValue(5000);
     fMotor.setCurrentStep(4000);
@@ -175,8 +245,9 @@ void test_down_stall_backs_off_clamped_to_max_and_enters_recovery(void){
 
 void test_stall_recovery_limit_reached_retries_original_up_target(void){
     FakeMotor fMotor;
-    BlindsCommandQueue queue;
-    BlindsController blinds(fMotor, queue);
+    FaultHandler faults;
+    BlindsCommandQueue queue(faults);
+    BlindsController blinds(fMotor, queue, faults);
 
     fMotor.setMaxStepValue(20000);
     fMotor.setCurrentStep(10000);
@@ -194,8 +265,9 @@ void test_stall_recovery_limit_reached_retries_original_up_target(void){
 
 void test_stall_recovery_limit_reached_retries_original_down_target(void){
     FakeMotor fMotor;
-    BlindsCommandQueue queue;
-    BlindsController blinds(fMotor, queue);
+    FaultHandler faults;
+    BlindsCommandQueue queue(faults);
+    BlindsController blinds(fMotor, queue, faults);
 
     fMotor.setMaxStepValue(20000);
     fMotor.setCurrentStep(10000);
@@ -211,8 +283,9 @@ void test_stall_recovery_limit_reached_retries_original_down_target(void){
 
 void test_stall_recovery_retry_stop_failure_enters_fault(void){
     FakeMotor fMotor;
-    BlindsCommandQueue queue;
-    BlindsController blinds(fMotor, queue);
+    FaultHandler faults;
+    BlindsCommandQueue queue(faults);
+    BlindsController blinds(fMotor, queue, faults);
 
     fMotor.setCurrentStep(10000);
 
@@ -228,8 +301,9 @@ void test_stall_recovery_retry_stop_failure_enters_fault(void){
 
 void test_home_calibration_stall_recovers_and_continues_calibrating_home(void){
     FakeMotor fMotor;
-    BlindsCommandQueue queue;
-    BlindsController blinds(fMotor, queue);
+    FaultHandler faults;
+    BlindsCommandQueue queue(faults);
+    BlindsController blinds(fMotor, queue, faults);
 
     fMotor.setMaxStepValue(20000);
 
@@ -250,8 +324,9 @@ void test_home_calibration_stall_recovers_and_continues_calibrating_home(void){
 
 void test_max_calibration_stall_before_threshold_recovers_and_continues_calibrating_max(void){
     FakeMotor fMotor;
-    BlindsCommandQueue queue;
-    BlindsController blinds(fMotor, queue);
+    FaultHandler faults;
+    BlindsCommandQueue queue(faults);
+    BlindsController blinds(fMotor, queue, faults);
 
     fMotor.setMaxStepValue(20000);
     fMotor.setCurrentStep(10000);
@@ -271,8 +346,9 @@ void test_max_calibration_stall_before_threshold_recovers_and_continues_calibrat
 
 void test_calibration_stall_fourth_recovery_enters_fault(void){
     FakeMotor fMotor;
-    BlindsCommandQueue queue;
-    BlindsController blinds(fMotor, queue);
+    FaultHandler faults;
+    BlindsCommandQueue queue(faults);
+    BlindsController blinds(fMotor, queue, faults);
 
     fMotor.setMaxStepValue(20000);
     blinds.setState(BlindsState::CALIBRATING_MAX);
@@ -297,8 +373,9 @@ void test_calibration_stall_fourth_recovery_enters_fault(void){
 
 void test_three_stall_recoveries_are_allowed_then_fourth_stall_faults(void){
     FakeMotor fMotor;
-    BlindsCommandQueue queue;
-    BlindsController blinds(fMotor, queue);
+    FaultHandler faults;
+    BlindsCommandQueue queue(faults);
+    BlindsController blinds(fMotor, queue, faults);
 
     TEST_ASSERT_EQUAL(ESP_OK, blinds.handleCommand(BlindsEvent::UP));
 
@@ -311,12 +388,17 @@ void test_three_stall_recoveries_are_allowed_then_fourth_stall_faults(void){
     TEST_ASSERT_EQUAL(ESP_ERR_INVALID_STATE, blinds.handleCommand(BlindsEvent::STALL_DETECTED));
     TEST_ASSERT_EQUAL(BlindsState::FAULT, blinds.getState());
     TEST_ASSERT_EQUAL(LastAction::STOP, fMotor.getLastAction());
+    assertFault(faults,
+                FaultSource::BlindsController,
+                FaultReason::StallRecoveryExhausted,
+                ESP_ERR_INVALID_STATE);
 }
 
 void test_target_reached_resets_stall_recovery_count(void){
     FakeMotor fMotor;
-    BlindsCommandQueue queue;
-    BlindsController blinds(fMotor, queue);
+    FaultHandler faults;
+    BlindsCommandQueue queue(faults);
+    BlindsController blinds(fMotor, queue, faults);
 
     TEST_ASSERT_EQUAL(ESP_OK, blinds.handleCommand(BlindsEvent::UP));
 
@@ -336,8 +418,9 @@ void test_target_reached_resets_stall_recovery_count(void){
 
 void test_stop_resets_stall_recovery_count(void){
     FakeMotor fMotor;
-    BlindsCommandQueue queue;
-    BlindsController blinds(fMotor, queue);
+    FaultHandler faults;
+    BlindsCommandQueue queue(faults);
+    BlindsController blinds(fMotor, queue, faults);
 
     TEST_ASSERT_EQUAL(ESP_OK, blinds.handleCommand(BlindsEvent::UP));
 
@@ -357,8 +440,9 @@ void test_stop_resets_stall_recovery_count(void){
 
 void test_stall_stop_failure_enters_fault(void){
     FakeMotor fMotor;
-    BlindsCommandQueue queue;
-    BlindsController blinds(fMotor, queue);
+    FaultHandler faults;
+    BlindsCommandQueue queue(faults);
+    BlindsController blinds(fMotor, queue, faults);
 
     fMotor.setCurrentStep(10000);
 
@@ -372,8 +456,9 @@ void test_stall_stop_failure_enters_fault(void){
 
 void test_stall_recovery_move_failure_enters_fault(void){
     FakeMotor fMotor;
-    BlindsCommandQueue queue;
-    BlindsController blinds(fMotor, queue);
+    FaultHandler faults;
+    BlindsCommandQueue queue(faults);
+    BlindsController blinds(fMotor, queue, faults);
 
     fMotor.setCurrentStep(10000);
 
@@ -387,8 +472,9 @@ void test_stall_recovery_move_failure_enters_fault(void){
 
 void test_move_up_failure_from_idle(void){
     FakeMotor fMotor;
-    BlindsCommandQueue queue;
-    BlindsController blinds(fMotor, queue);
+    FaultHandler faults;
+    BlindsCommandQueue queue(faults);
+    BlindsController blinds(fMotor, queue, faults);
 
     fMotor.setNextResult(ESP_ERR_INVALID_ARG);
 
@@ -400,8 +486,9 @@ void test_move_up_failure_from_idle(void){
 
 void test_move_down_failure_from_idle(void){
     FakeMotor fMotor;
-    BlindsCommandQueue queue;
-    BlindsController blinds(fMotor, queue);
+    FaultHandler faults;
+    BlindsCommandQueue queue(faults);
+    BlindsController blinds(fMotor, queue, faults);
 
     fMotor.setNextResult(ESP_ERR_INVALID_ARG);
 
@@ -412,8 +499,9 @@ void test_move_down_failure_from_idle(void){
 
 void test_calibrate_move_failure_enters_fault(void){
     FakeMotor fMotor;
-    BlindsCommandQueue queue;
-    BlindsController blinds(fMotor, queue);
+    FaultHandler faults;
+    BlindsCommandQueue queue(faults);
+    BlindsController blinds(fMotor, queue, faults);
 
     fMotor.setNextMoveResult(ESP_ERR_INVALID_STATE);
 
@@ -422,12 +510,17 @@ void test_calibrate_move_failure_enters_fault(void){
     TEST_ASSERT_EQUAL(LastAction::DOWN, fMotor.getLastAction());
     TEST_ASSERT_EQUAL(0, fMotor.getLastTargetStep());
     TEST_ASSERT_TRUE(fMotor.wasLastMoveCalibrating());
+    assertFault(faults,
+                FaultSource::BlindsController,
+                FaultReason::MotorMoveFailed,
+                ESP_ERR_INVALID_STATE);
 }
 
 void test_homing_reached_move_to_max_failure_enters_fault(void){
     FakeMotor fMotor;
-    BlindsCommandQueue queue;
-    BlindsController blinds(fMotor, queue);
+    FaultHandler faults;
+    BlindsCommandQueue queue(faults);
+    BlindsController blinds(fMotor, queue, faults);
 
     blinds.setState(BlindsState::CALIBRATING_HOME);
     fMotor.setNextMoveResult(ESP_FAIL);
@@ -439,8 +532,9 @@ void test_homing_reached_move_to_max_failure_enters_fault(void){
 
 void test_calibration_returns_to_step_computed_at_homing(void){
     FakeMotor fMotor;
-    BlindsCommandQueue queue;
-    BlindsController blinds(fMotor, queue);
+    FaultHandler faults;
+    BlindsCommandQueue queue(faults);
+    BlindsController blinds(fMotor, queue, faults);
 
     const int32_t travelFromBoot = 5000;
     const int32_t expectedReturnStep = travelFromBoot + AppConfig::offsetOfMinStep;
@@ -460,8 +554,9 @@ void test_calibration_returns_to_step_computed_at_homing(void){
 
 void test_calibration_return_target_clamps_to_calibrated_max(void){
     FakeMotor fMotor;
-    BlindsCommandQueue queue;
-    BlindsController blinds(fMotor, queue);
+    FaultHandler faults;
+    BlindsCommandQueue queue(faults);
+    BlindsController blinds(fMotor, queue, faults);
 
     const int32_t travelFromBoot = 40000;
     const int32_t maxStallStep = AppConfig::stepStallThrehold + 10000;
@@ -480,8 +575,9 @@ void test_calibration_return_target_clamps_to_calibrated_max(void){
 
 void test_calibration_return_move_failure_enters_fault(void){
     FakeMotor fMotor;
-    BlindsCommandQueue queue;
-    BlindsController blinds(fMotor, queue);
+    FaultHandler faults;
+    BlindsCommandQueue queue(faults);
+    BlindsController blinds(fMotor, queue, faults);
 
     TEST_ASSERT_EQUAL(ESP_OK, blinds.handleCommand(BlindsEvent::CALIBRATE));
     fMotor.setCurrentStep(INT_MAX - 5000);
@@ -497,8 +593,9 @@ void test_calibration_return_move_failure_enters_fault(void){
 
 void test_up_during_home_calibration_stops_and_enters_fault(void){
     FakeMotor fMotor;
-    BlindsCommandQueue queue;
-    BlindsController blinds(fMotor, queue);
+    FaultHandler faults;
+    BlindsCommandQueue queue(faults);
+    BlindsController blinds(fMotor, queue, faults);
 
     blinds.setState(BlindsState::CALIBRATING_HOME);
 
@@ -509,8 +606,9 @@ void test_up_during_home_calibration_stops_and_enters_fault(void){
 
 void test_up_during_max_calibration_stops_and_enters_fault(void){
     FakeMotor fMotor;
-    BlindsCommandQueue queue;
-    BlindsController blinds(fMotor, queue);
+    FaultHandler faults;
+    BlindsCommandQueue queue(faults);
+    BlindsController blinds(fMotor, queue, faults);
 
     blinds.setState(BlindsState::CALIBRATING_MAX);
 
@@ -521,8 +619,9 @@ void test_up_during_max_calibration_stops_and_enters_fault(void){
 
 void test_down_during_home_calibration_stops_and_enters_fault(void){
     FakeMotor fMotor;
-    BlindsCommandQueue queue;
-    BlindsController blinds(fMotor, queue);
+    FaultHandler faults;
+    BlindsCommandQueue queue(faults);
+    BlindsController blinds(fMotor, queue, faults);
 
     blinds.setState(BlindsState::CALIBRATING_HOME);
 
@@ -533,8 +632,9 @@ void test_down_during_home_calibration_stops_and_enters_fault(void){
 
 void test_down_during_max_calibration_stops_and_enters_fault(void){
     FakeMotor fMotor;
-    BlindsCommandQueue queue;
-    BlindsController blinds(fMotor, queue);
+    FaultHandler faults;
+    BlindsCommandQueue queue(faults);
+    BlindsController blinds(fMotor, queue, faults);
 
     blinds.setState(BlindsState::CALIBRATING_MAX);
 
@@ -545,8 +645,9 @@ void test_down_during_max_calibration_stops_and_enters_fault(void){
 
 void test_blinds_state_fault_up(void){
     FakeMotor fMotor;
-    BlindsCommandQueue queue;
-    BlindsController blinds(fMotor, queue);
+    FaultHandler faults;
+    BlindsCommandQueue queue(faults);
+    BlindsController blinds(fMotor, queue, faults);
 
     blinds.setState(BlindsState::FAULT);
 
@@ -557,8 +658,9 @@ void test_blinds_state_fault_up(void){
 
 void test_blinds_state_fault_down(void){
     FakeMotor fMotor;
-    BlindsCommandQueue queue;
-    BlindsController blinds(fMotor, queue);
+    FaultHandler faults;
+    BlindsCommandQueue queue(faults);
+    BlindsController blinds(fMotor, queue, faults);
 
     blinds.setState(BlindsState::FAULT);
 
@@ -569,8 +671,9 @@ void test_blinds_state_fault_down(void){
 
 void test_blinds_state_fault_stop(void){
     FakeMotor fMotor;
-    BlindsCommandQueue queue;
-    BlindsController blinds(fMotor, queue);
+    FaultHandler faults;
+    BlindsCommandQueue queue(faults);
+    BlindsController blinds(fMotor, queue, faults);
 
     blinds.setState(BlindsState::FAULT);
 
@@ -581,8 +684,9 @@ void test_blinds_state_fault_stop(void){
 
 void test_blinds_state_fault_limit_reached(void){
     FakeMotor fMotor;
-    BlindsCommandQueue queue;
-    BlindsController blinds(fMotor, queue);
+    FaultHandler faults;
+    BlindsCommandQueue queue(faults);
+    BlindsController blinds(fMotor, queue, faults);
 
     blinds.setState(BlindsState::FAULT);
 
@@ -593,8 +697,9 @@ void test_blinds_state_fault_limit_reached(void){
 
 void test_percent_target_moves_up_with_rounding(void){
     FakeMotor fMotor;
-    BlindsCommandQueue queue;
-    BlindsController blinds(fMotor, queue);
+    FaultHandler faults;
+    BlindsCommandQueue queue(faults);
+    BlindsController blinds(fMotor, queue, faults);
 
     fMotor.setMaxStepValue(101);
     fMotor.setCurrentStep(20);
@@ -607,8 +712,9 @@ void test_percent_target_moves_up_with_rounding(void){
 
 void test_percent_target_moves_down(void){
     FakeMotor fMotor;
-    BlindsCommandQueue queue;
-    BlindsController blinds(fMotor, queue);
+    FaultHandler faults;
+    BlindsCommandQueue queue(faults);
+    BlindsController blinds(fMotor, queue, faults);
 
     fMotor.setMaxStepValue(20000);
     fMotor.setCurrentStep(15000);
@@ -622,8 +728,9 @@ void test_percent_target_moves_down(void){
 void test_percent_endpoint_targets_use_zero_and_max(void){
     {
         FakeMotor fMotor;
-        BlindsCommandQueue queue;
-        BlindsController blinds(fMotor, queue);
+        FaultHandler faults;
+        BlindsCommandQueue queue(faults);
+        BlindsController blinds(fMotor, queue, faults);
 
         fMotor.setMaxStepValue(12000);
         fMotor.setCurrentStep(6000);
@@ -635,8 +742,9 @@ void test_percent_endpoint_targets_use_zero_and_max(void){
 
     {
         FakeMotor fMotor;
-        BlindsCommandQueue queue;
-        BlindsController blinds(fMotor, queue);
+        FaultHandler faults;
+        BlindsCommandQueue queue(faults);
+        BlindsController blinds(fMotor, queue, faults);
 
         fMotor.setMaxStepValue(12000);
         fMotor.setCurrentStep(6000);
@@ -649,8 +757,9 @@ void test_percent_endpoint_targets_use_zero_and_max(void){
 
 void test_percent_target_rejected_before_calibrated_max(void){
     FakeMotor fMotor;
-    BlindsCommandQueue queue;
-    BlindsController blinds(fMotor, queue);
+    FaultHandler faults;
+    BlindsCommandQueue queue(faults);
+    BlindsController blinds(fMotor, queue, faults);
 
     TEST_ASSERT_EQUAL(ESP_ERR_INVALID_STATE, blinds.handleCommand(percentCommand(50)));
     TEST_ASSERT_EQUAL(BlindsState::IDLE, blinds.getState());
@@ -659,8 +768,9 @@ void test_percent_target_rejected_before_calibrated_max(void){
 
 void test_percent_command_retargets_while_moving(void){
     FakeMotor fMotor;
-    BlindsCommandQueue queue;
-    BlindsController blinds(fMotor, queue);
+    FaultHandler faults;
+    BlindsCommandQueue queue(faults);
+    BlindsController blinds(fMotor, queue, faults);
 
     fMotor.setMaxStepValue(20000);
     fMotor.setCurrentStep(1000);
@@ -678,8 +788,9 @@ void test_percent_command_retargets_while_moving(void){
 
 void test_percent_retarget_stop_failure_enters_fault(void){
     FakeMotor fMotor;
-    BlindsCommandQueue queue;
-    BlindsController blinds(fMotor, queue);
+    FaultHandler faults;
+    BlindsCommandQueue queue(faults);
+    BlindsController blinds(fMotor, queue, faults);
 
     fMotor.setMaxStepValue(20000);
     fMotor.setCurrentStep(1000);
@@ -689,12 +800,17 @@ void test_percent_retarget_stop_failure_enters_fault(void){
     TEST_ASSERT_EQUAL(ESP_FAIL, blinds.handleCommand(percentCommand(10)));
     TEST_ASSERT_EQUAL(BlindsState::FAULT, blinds.getState());
     TEST_ASSERT_EQUAL(LastAction::STOP, fMotor.getLastAction());
+    assertFault(faults,
+                FaultSource::BlindsController,
+                FaultReason::MotorStopFailed,
+                ESP_FAIL);
 }
 
 void test_percent_during_calibration_stops_and_enters_fault(void){
     FakeMotor fMotor;
-    BlindsCommandQueue queue;
-    BlindsController blinds(fMotor, queue);
+    FaultHandler faults;
+    BlindsCommandQueue queue(faults);
+    BlindsController blinds(fMotor, queue, faults);
 
     blinds.setState(BlindsState::CALIBRATING_HOME);
 
@@ -737,15 +853,17 @@ void test_mqtt_parser_rejects_invalid_percentage_payloads(void){
 }
 
 void test_motor_rejects_negative_concrete_target(void){
-    BlindsCommandQueue queue;
-    MotorController motor(AppConfig::motorPins, queue);
+    FaultHandler faults;
+    BlindsCommandQueue queue(faults);
+    MotorController motor(AppConfig::motorPins, queue, faults);
 
     TEST_ASSERT_EQUAL(ESP_ERR_INVALID_ARG, motor.move(-1));
 }
 
 void test_motor_rejects_target_above_configured_max(void){
-    BlindsCommandQueue queue;
-    MotorController motor(AppConfig::motorPins, queue);
+    FaultHandler faults;
+    BlindsCommandQueue queue(faults);
+    MotorController motor(AppConfig::motorPins, queue, faults);
 
     motor.setMaxStep(AppConfig::offsetOfMaxStep);
 
@@ -755,6 +873,10 @@ void test_motor_rejects_target_above_configured_max(void){
 extern "C" void app_main(void) {
     UNITY_BEGIN();
 
+    RUN_TEST(test_fault_handler_starts_empty);
+    RUN_TEST(test_fault_handler_records_fault);
+    RUN_TEST(test_fault_handler_preserves_first_fault);
+    RUN_TEST(test_command_queue_overflow_records_fault);
     RUN_TEST(test_motor_moving_up);
     RUN_TEST(test_motor_moving_down);
     RUN_TEST(test_same_button_toggle_up);
