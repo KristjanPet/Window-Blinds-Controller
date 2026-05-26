@@ -8,6 +8,7 @@
 #include <esp_check.h>
 #include "IMotor.hpp"
 #include "BlindsCommandQueue.hpp"
+#include "FaultHandler.hpp"
 #include "AppConfig.hpp"
 
 enum class MotorState{
@@ -66,6 +67,7 @@ private:
     RmtQueueState rmtQueue_;
 
     BlindsCommandQueue& commandsQueue_;
+    FaultHandler& faultHandler_;
     mutable portMUX_TYPE motorStepMux_ = portMUX_INITIALIZER_UNLOCKED;
 
     static bool IRAM_ATTR rmtDoneCallback(
@@ -93,7 +95,7 @@ private:
     void updateRampAfterStep();
     esp_err_t startMovement(MotorState state, uint32_t dirLevel);
 public:
-    MotorController(const MotorPins& pins, BlindsCommandQueue& commandsQueue);
+    MotorController(const MotorPins& pins, BlindsCommandQueue& commandsQueue, FaultHandler& faultHandler);
     esp_err_t init();
     esp_err_t move(int32_t targetStep, bool isCalibrating = false) override;
     esp_err_t moveToMax() override;

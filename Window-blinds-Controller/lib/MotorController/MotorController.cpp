@@ -26,8 +26,10 @@ static int32_t positionFromCount(int32_t startStep, MotorState state, int pcntCo
     return static_cast<int32_t>(position);
 }
 
-MotorController::MotorController(const MotorPins& pins, BlindsCommandQueue& commandsQueue)
-                             : pins_(pins), commandsQueue_(commandsQueue){}
+MotorController::MotorController(const MotorPins& pins,
+                                 BlindsCommandQueue& commandsQueue,
+                                 FaultHandler& faultHandler)
+                             : pins_(pins), commandsQueue_(commandsQueue), faultHandler_(faultHandler){}
 
 void MotorController::resetRamp(){
     currentTogglePeriodUs_ = AppConfig::StartTogglePeriodUs;
@@ -90,6 +92,7 @@ void MotorController::refillTaskLoop(){
         const esp_err_t fillRet = fillRmtQueue();
         if(fillRet != ESP_OK){
             ESP_LOGE(TAG, "RMT refill failed: %s", esp_err_to_name(fillRet));
+            faultHandler_.record(FaultSource::MotorController, FaultReason::RmtRefillFailed, fillRet);
             failMovementFromTask();
             continue;
         }
@@ -107,6 +110,7 @@ void MotorController::refillTaskLoop(){
             const esp_err_t completeRet = completeMovementFromTask();
             if(completeRet != ESP_OK){
                 ESP_LOGE(TAG, "Movement completion failed: %s", esp_err_to_name(completeRet));
+                faultHandler_.record(FaultSource::MotorController, FaultReason::MovementCompletionFailed, completeRet);
                 failMovementFromTask();
             }
         }

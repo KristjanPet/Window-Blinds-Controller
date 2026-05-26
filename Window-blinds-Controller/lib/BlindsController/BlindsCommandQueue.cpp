@@ -39,6 +39,8 @@ static BaseType_t sendRecoveryToFrontFromISR(QueueHandle_t queue, BlindsEvent ev
     return xQueueSendToFrontFromISR(queue, &command, hpTaskWoken);
 }
 
+BlindsCommandQueue::BlindsCommandQueue(FaultHandler& faultHandler): faultHandler_(faultHandler){}
+
 esp_err_t BlindsCommandQueue::init(){
     queue_ = xQueueCreate(AppConfig::commandsQueueDepth, sizeof(BlindsCommand));
     if(queue_ == NULL){
@@ -55,6 +57,7 @@ BaseType_t BlindsCommandQueue::send(BlindsEvent e, TickType_t wait){
 BaseType_t BlindsCommandQueue::send(const BlindsCommand& command, TickType_t wait){
     if(queue_ == nullptr){
         ESP_LOGE(TAG, "Send failed: queue not initialized");
+        faultHandler_.record(FaultSource::CommandQueue, FaultReason::CommandQueueUnavailable, ESP_ERR_INVALID_STATE);
         return pdFALSE;
     }
 
@@ -62,6 +65,7 @@ BaseType_t BlindsCommandQueue::send(const BlindsCommand& command, TickType_t wai
     if(sent != pdTRUE){
         droppedEvents_ = droppedEvents_ + 1;
         BlindsEvent recoveryEvent = recoveryEventFor(droppedEvents_);
+        faultHandler_.record(FaultSource::CommandQueue, FaultReason::CommandQueueOverflow, ESP_FAIL);
 
         ESP_LOGE(TAG, "Send failed, dropped events: %lu", static_cast<unsigned long>(droppedEvents_));
         if(sendRecoveryToFront(queue_, recoveryEvent) != pdTRUE){
@@ -79,6 +83,9 @@ BaseType_t BlindsCommandQueue::sendMoveToPercent(uint8_t percent, TickType_t wai
 BaseType_t BlindsCommandQueue::sendFromISR(BlindsEvent e, BaseType_t* hpTaskWoken){
     if(queue_ == nullptr){
         droppedEvents_ = droppedEvents_ + 1;
+        faultHandler_.recordFromISR(FaultSource::CommandQueue,
+                                    FaultReason::CommandQueueUnavailable,
+                                    ESP_ERR_INVALID_STATE);
         return pdFALSE;
     }
 
@@ -87,6 +94,7 @@ BaseType_t BlindsCommandQueue::sendFromISR(BlindsEvent e, BaseType_t* hpTaskWoke
     if(sent != pdTRUE){
         droppedEvents_ = droppedEvents_ + 1;
         BlindsEvent recoveryEvent = recoveryEventFor(droppedEvents_);
+        faultHandler_.recordFromISR(FaultSource::CommandQueue, FaultReason::CommandQueueOverflow, ESP_FAIL);
         sendRecoveryToFrontFromISR(queue_, recoveryEvent, hpTaskWoken);
     }
 

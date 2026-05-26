@@ -6,8 +6,17 @@
 
 static const char* TAG = "BLINDS";
 
-BlindsController::BlindsController(IMotor& motor, BlindsCommandQueue& commandQueue):
-                                 motor_(motor), commandsQueue_(commandQueue){}
+BlindsController::BlindsController(IMotor& motor,
+                                   BlindsCommandQueue& commandQueue,
+                                   FaultHandler& faultHandler):
+                                 motor_(motor),
+                                 commandsQueue_(commandQueue),
+                                 faultHandler_(faultHandler){}
+
+void BlindsController::enterFault(FaultReason reason, esp_err_t err){
+    state_ = BlindsState::FAULT;
+    faultHandler_.record(FaultSource::BlindsController, reason, err);
+}
 
 void BlindsController::resetNormalStallRecovery(){
     normalStallRecoveries_ = 0;
@@ -19,15 +28,17 @@ void BlindsController::resetNormalStallRecovery(){
 esp_err_t BlindsController::retryStallRecoveryTarget(){
     esp_err_t err = motor_.stop();
     if(err != ESP_OK){
-        state_ = BlindsState::FAULT;
+        enterFault(FaultReason::MotorStopFailed, err);
         ESP_LOGE(TAG, "Error stopping stall recovery before retry: %s", esp_err_to_name(err));
         return err;
     }
     vTaskDelay(pdMS_TO_TICKS(200));
 
     const int32_t maxStep = motor_.getMaxStep();
+    FaultReason faultReason = FaultReason::MotorMoveFailed;
     if(!hasActiveTarget_ || activeTargetStep_ < 0 || activeTargetStep_ > maxStep){
         err = ESP_ERR_INVALID_STATE;
+        faultReason = FaultReason::InvalidStallRecoveryTarget;
     } else{
         const int32_t currentStep = motor_.getCurrentStep();
         err = motor_.move(activeTargetStep_, recoveryReturnState_ == BlindsState::CALIBRATING_HOME);
@@ -42,7 +53,7 @@ esp_err_t BlindsController::retryStallRecoveryTarget(){
     }
 
     if(err != ESP_OK){
-        state_ = BlindsState::FAULT;
+        enterFault(faultReason, err);
         ESP_LOGE(TAG, "Error retrying after stall recovery: %s", esp_err_to_name(err));
     }
 
@@ -62,13 +73,13 @@ esp_err_t BlindsController::handleNormalStall(int32_t currentStep){
 
     esp_err_t err = motor_.stop();
     if(err != ESP_OK){
-        state_ = BlindsState::FAULT;
+        enterFault(FaultReason::MotorStopFailed, err);
         ESP_LOGE(TAG, "Error stopping after stall: %s", esp_err_to_name(err));
         return err;
     }
 
     if(maxStep < 0 || targetStep < 0 || targetStep > maxStep){
-        state_ = BlindsState::FAULT;
+        enterFault(FaultReason::InvalidStallRecoveryTarget, ESP_ERR_INVALID_STATE);
         activeTargetStep_ = targetStep;
         hasActiveTarget_ = true;
         ESP_LOGE(TAG, "Invalid target during stall recovery: target=%d max=%d",
@@ -77,7 +88,7 @@ esp_err_t BlindsController::handleNormalStall(int32_t currentStep){
     }
 
     if(normalStallRecoveries_ >= AppConfig::normalStallMaxRecoveries){
-        state_ = BlindsState::FAULT;
+        enterFault(FaultReason::StallRecoveryExhausted, ESP_ERR_INVALID_STATE);
         activeTargetStep_ = targetStep;
         hasActiveTarget_ = true;
         ESP_LOGE(TAG, "Normal stall recovery failed after %u tries",
@@ -99,7 +110,7 @@ esp_err_t BlindsController::handleNormalStall(int32_t currentStep){
     }
 
     if(backoffTarget == currentStep){
-        state_ = BlindsState::FAULT;
+        enterFault(FaultReason::StallRecoveryBackoffInvalid, ESP_ERR_INVALID_STATE);
         activeTargetStep_ = targetStep;
         hasActiveTarget_ = true;
         ESP_LOGE(TAG, "Stall recovery backoff target equals current position: %d", currentStep);
@@ -115,7 +126,7 @@ esp_err_t BlindsController::handleNormalStall(int32_t currentStep){
         state_ = BlindsState::STALL_RECOVERY;
         ESP_LOGI(TAG, "STALL_DETECTED, backing off to %d", backoffTarget);
     } else{
-        state_ = BlindsState::FAULT;
+        enterFault(FaultReason::MotorMoveFailed, err);
         ESP_LOGE(TAG, "Error backing away after stall: %s", esp_err_to_name(err));
     }
 
@@ -163,7 +174,9 @@ esp_err_t BlindsController::handleMoveToPercent(uint8_t percent){
     if(state_ == BlindsState::CALIBRATING_HOME || state_ == BlindsState::CALIBRATING_MAX){
         const esp_err_t err = motor_.stop();
         ESP_LOGE(TAG, "Blinds state set to FAULT");
-        state_ = BlindsState::FAULT;
+        const FaultReason reason = err == ESP_OK ? FaultReason::UnexpectedCalibrationCommand :
+                                                FaultReason::MotorStopFailed;
+        enterFault(reason, err);
         return err;
     }
 
@@ -177,7 +190,7 @@ esp_err_t BlindsController::handleMoveToPercent(uint8_t percent){
        state_ == BlindsState::STALL_RECOVERY){
         err = motor_.stop();
         if(err != ESP_OK){
-            state_ = BlindsState::FAULT;
+            enterFault(FaultReason::MotorStopFailed, err);
             ESP_LOGE(TAG, "Error stopping before percentage move: %s", esp_err_to_name(err));
             return err;
         }
@@ -233,7 +246,9 @@ esp_err_t BlindsController::handleCommand(const BlindsCommand& command){
             else if(state_ == BlindsState::CALIBRATING_HOME || state_ == BlindsState::CALIBRATING_MAX){
                 err = motor_.stop();
                 ESP_LOGE(TAG, "Blinds state set to FAULT");
-                state_ = BlindsState::FAULT;
+                const FaultReason reason = err == ESP_OK ? FaultReason::UnexpectedCalibrationCommand :
+                                                        FaultReason::MotorStopFailed;
+                enterFault(reason, err);
             }
             else{
                 err = motor_.moveToMax();
@@ -264,7 +279,9 @@ esp_err_t BlindsController::handleCommand(const BlindsCommand& command){
             else if(state_ == BlindsState::CALIBRATING_HOME || state_ == BlindsState::CALIBRATING_MAX){
                 err = motor_.stop();
                 ESP_LOGE(TAG, "Blinds state set to FAULT");
-                state_ = BlindsState::FAULT;
+                const FaultReason reason = err == ESP_OK ? FaultReason::UnexpectedCalibrationCommand :
+                                                        FaultReason::MotorStopFailed;
+                enterFault(reason, err);
             }
             else{
                 err = motor_.move(0);
@@ -299,7 +316,7 @@ esp_err_t BlindsController::handleCommand(const BlindsCommand& command){
                     ESP_LOGE(TAG, "Blinds state is FAULT");
                 }
             } else{
-                    state_ = BlindsState::FAULT;
+                    enterFault(FaultReason::MotorStopFailed, err);
                     ESP_LOGE(TAG, "Error sending command: %s", esp_err_to_name(err));
             }
             ESP_LOGI(TAG, "LIMIT REACHED");
@@ -316,7 +333,7 @@ esp_err_t BlindsController::handleCommand(const BlindsCommand& command){
                 state_ = BlindsState::CALIBRATING_HOME;
                 ESP_LOGI(TAG, "Moving to HOME");
             } else{
-                state_ = BlindsState::FAULT;
+                enterFault(FaultReason::MotorMoveFailed, err);
                 ESP_LOGE(TAG, "Error sending command: %s", esp_err_to_name(err));
             }
         }
@@ -350,7 +367,7 @@ esp_err_t BlindsController::handleCommand(const BlindsCommand& command){
                     recoveryReturnState_ = BlindsState::CALIBRATING_MAX;
                     state_ = BlindsState::CALIBRATING_MAX;
                 } else{
-                    state_ = BlindsState::FAULT;
+                    enterFault(FaultReason::MotorMoveFailed, err);
                     ESP_LOGE(TAG, "Error moving to max during calibration: %s", esp_err_to_name(err));
                 }
             }
@@ -359,7 +376,7 @@ esp_err_t BlindsController::handleCommand(const BlindsCommand& command){
                 ESP_LOGE(TAG, "Homing detected unexpectedly, Blinds state set FAULT");
             }
         } else{
-                state_ = BlindsState::FAULT;
+                enterFault(FaultReason::MotorStopFailed, err);
                 ESP_LOGE(TAG, "Error sending command: %s", esp_err_to_name(err));
         }
         break;
@@ -383,14 +400,14 @@ esp_err_t BlindsController::handleCommand(const BlindsCommand& command){
                         state_ = targetStep >= currentStep ? BlindsState::MOVING_UP : BlindsState::MOVING_DOWN;
                         ESP_LOGI(TAG, "Calibration complete");
                     } else{
-                        state_ = BlindsState::FAULT;
+                        enterFault(FaultReason::MotorMoveFailed, err);
                         ESP_LOGE(TAG, "Error returning after calibration: %s", esp_err_to_name(err));
                     }
                 } else{ 
                     ESP_LOGE(TAG, "Blinds state is FAULT");
                 }
             } else{
-                state_ = BlindsState::FAULT;
+                enterFault(FaultReason::MotorStopFailed, err);
                 ESP_LOGE(TAG, "Error sending command: %s", esp_err_to_name(err));
             }
         }
@@ -403,13 +420,17 @@ esp_err_t BlindsController::handleCommand(const BlindsCommand& command){
     case BlindsEvent::HOMING_CHECK:
         motor_.setHoming();
         err = motor_.moveToMax();
-        if(err != ESP_OK) state_ = BlindsState::FAULT;
+        if(err != ESP_OK){
+            enterFault(FaultReason::MotorMoveFailed, err);
+        }
         vTaskDelay(pdMS_TO_TICKS(400));
         err = motor_.stop();
-        if(err != ESP_OK) state_ = BlindsState::FAULT;
+        if(err != ESP_OK){
+            enterFault(FaultReason::MotorStopFailed, err);
+        }
         break;
     case BlindsEvent::FAULT:
-        state_ = BlindsState::FAULT;
+        enterFault(FaultReason::ExplicitFaultEvent, ESP_FAIL);
         ESP_LOGE(TAG, "Blinds state is FAULT");
         break;
     default:

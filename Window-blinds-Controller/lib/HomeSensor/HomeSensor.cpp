@@ -4,8 +4,8 @@
 
 static const char* TAG = "HOME_SENSOR";
 
-HomeSensor::HomeSensor(gpio_num_t pin, BlindsCommandQueue& commandQueue)
-    : pin_(pin), commandQueue_(commandQueue){}
+HomeSensor::HomeSensor(gpio_num_t pin, BlindsCommandQueue& commandQueue, FaultHandler& faultHandler)
+    : pin_(pin), commandQueue_(commandQueue), faultHandler_(faultHandler){}
 
 void IRAM_ATTR HomeSensor::sensorIsr(void* arg){
     auto* self = static_cast<HomeSensor*>(arg);
@@ -46,6 +46,9 @@ esp_err_t HomeSensor::sensorCheck(){
         workingAtInit_ = (gpio_get_level(pin_) == 1);
 
         if(workingAtInit_){ 
+            faultHandler_.record(FaultSource::HomeSensor,
+                                 FaultReason::StuckHomeSensor,
+                                 ESP_ERR_INVALID_STATE);
             if(commandQueue_.send(BlindsEvent::FAULT) != pdTRUE){
                 ESP_LOGE(TAG, "Failed to send homing fault event");
                 return ESP_FAIL;

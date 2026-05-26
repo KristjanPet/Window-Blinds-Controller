@@ -10,6 +10,7 @@
 #include "BlindsCommandQueue.hpp"
 #include "Tmc2209Driver.hpp"
 #include "AppConfig.hpp"
+#include "FaultHandler.hpp"
 #include "Wifi.hpp"
 #include "MqttClient.hpp"
 #include "ConnSecrets.hpp"
@@ -20,7 +21,8 @@ extern "C" void app_main(void) {
 
     esp_err_t err = ESP_OK;
 
-    BlindsCommandQueue commandsQueue;
+    FaultHandler faultHandler;
+    BlindsCommandQueue commandsQueue(faultHandler);
     err = commandsQueue.init();
     if(err != ESP_OK){
         ESP_LOGE(TAG_MAIN, "Command queue init failed: %s", esp_err_to_name(err));
@@ -45,14 +47,14 @@ extern "C" void app_main(void) {
         esp_restart();
     };
 
-    MotorController motor(AppConfig::motorPins, commandsQueue);
+    MotorController motor(AppConfig::motorPins, commandsQueue, faultHandler);
     err = motor.init();
     if(err != ESP_OK){
         ESP_LOGE(TAG_MAIN, "Motor init failed: %s", esp_err_to_name(err));
         esp_restart();
     };
 
-    BlindsController blinds(motor, commandsQueue);
+    BlindsController blinds(motor, commandsQueue, faultHandler);
 
     ButtonHandler buttonHandler(AppConfig::buttonPins, commandsQueue);
     err = buttonHandler.init();
@@ -61,7 +63,7 @@ extern "C" void app_main(void) {
         esp_restart();
     };
 
-    HomeSensor homeSensor(AppConfig::homeSensorPin, commandsQueue);
+    HomeSensor homeSensor(AppConfig::homeSensorPin, commandsQueue, faultHandler);
     err = homeSensor.init();
     if(err != ESP_OK){
         ESP_LOGE(TAG_MAIN, "Home sensor init failed: %s", esp_err_to_name(err));

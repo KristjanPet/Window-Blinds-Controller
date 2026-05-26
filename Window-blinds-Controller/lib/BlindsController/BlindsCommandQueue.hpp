@@ -4,14 +4,17 @@
 #include <esp_check.h>
 #include "Types.hpp"
 #include "AppConfig.hpp"
+#include "FaultHandler.hpp"
 
 class BlindsCommandQueue{
 
 private:
     QueueHandle_t queue_ = nullptr;
     volatile uint32_t droppedEvents_ = 0;
+    FaultHandler& faultHandler_;
 
 public:
+    explicit BlindsCommandQueue(FaultHandler& faultHandler);
     esp_err_t init();
     BaseType_t send(BlindsEvent e, TickType_t wait = 0);
     BaseType_t send(const BlindsCommand& command, TickType_t wait = 0);

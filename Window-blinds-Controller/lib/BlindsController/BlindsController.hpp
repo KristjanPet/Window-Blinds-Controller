@@ -3,6 +3,7 @@
 #include <freertos/FreeRTOS.h>
 #include "IMotor.hpp"
 #include "BlindsCommandQueue.hpp"
+#include "FaultHandler.hpp"
 #include "Types.hpp"
 
 enum class BlindsState{
@@ -21,12 +22,14 @@ private:
     BlindsState state_ = BlindsState::IDLE;
     IMotor& motor_;
     BlindsCommandQueue& commandsQueue_;
+    FaultHandler& faultHandler_;
     int32_t activeTargetStep_ = 0;
     bool hasActiveTarget_ = false;
     BlindsState recoveryReturnState_ = BlindsState::IDLE;
     uint8_t normalStallRecoveries_ = 0;
     int32_t calibrationReturnStep_ = 0;
 
+    void enterFault(FaultReason reason, esp_err_t err);
     void resetNormalStallRecovery();
     esp_err_t handleNormalStall(int32_t currentStep);
     esp_err_t retryStallRecoveryTarget();
@@ -35,7 +38,7 @@ private:
     esp_err_t handleMoveToPercent(uint8_t percent);
     
 public:
-    BlindsController(IMotor& motor, BlindsCommandQueue& commandQueue);
+    BlindsController(IMotor& motor, BlindsCommandQueue& commandQueue, FaultHandler& faultHandler);
     static void handleCommandTask(void* arg);
     esp_err_t handleCommand(BlindsEvent cmd);
     esp_err_t handleCommand(const BlindsCommand& command);
