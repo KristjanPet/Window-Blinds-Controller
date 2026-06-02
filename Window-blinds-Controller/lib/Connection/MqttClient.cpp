@@ -1,6 +1,8 @@
 #include "MqttClient.hpp"
 
+#include <cstdio>
 #include <cstring>
+#include <esp_err.h>
 #include <esp_log.h>
 
 #include "AppConfig.hpp"
@@ -8,6 +10,9 @@
 #include "Wifi.hpp"
 
 static const char* TAG_MQTT = "MQTT";
+static constexpr uint32_t MQTT_STATUS_TASK_STACK = 3072;
+static constexpr UBaseType_t MQTT_STATUS_TASK_PRIORITY = 2;
+static constexpr size_t MQTT_STATUS_PAYLOAD_BUFFER_SIZE = 160;
 
 static const char* emptyToNull(const char* value){
     return value != nullptr && value[0] != '\0' ? value : nullptr;
@@ -103,6 +108,77 @@ static const char* commandName(BlindsEvent command){
     }
 }
 
+static const char* faultSourceName(FaultSource source){
+    switch(source){
+    case FaultSource::BlindsController:
+        return "blinds_controller";
+    case FaultSource::MotorController:
+        return "motor_controller";
+    case FaultSource::HomeSensor:
+        return "home_sensor";
+    case FaultSource::CommandQueue:
+        return "command_queue";
+    default:
+        return "unknown";
+    }
+}
+
+static const char* faultReasonName(FaultReason reason){
+    switch(reason){
+    case FaultReason::None:
+        return "none";
+    case FaultReason::MotorStopFailed:
+        return "motor_stop_failed";
+    case FaultReason::MotorMoveFailed:
+        return "motor_move_failed";
+    case FaultReason::StallRecoveryExhausted:
+        return "stall_recovery_exhausted";
+    case FaultReason::InvalidStallRecoveryTarget:
+        return "invalid_stall_recovery_target";
+    case FaultReason::StallRecoveryBackoffInvalid:
+        return "stall_recovery_backoff_invalid";
+    case FaultReason::UnexpectedCalibrationCommand:
+        return "unexpected_calibration_command";
+    case FaultReason::StuckHomeSensor:
+        return "stuck_home_sensor";
+    case FaultReason::RmtRefillFailed:
+        return "rmt_refill_failed";
+    case FaultReason::MovementCompletionFailed:
+        return "movement_completion_failed";
+    case FaultReason::CommandQueueOverflow:
+        return "command_queue_overflow";
+    case FaultReason::CommandQueueUnavailable:
+        return "command_queue_unavailable";
+    case FaultReason::ExplicitFaultEvent:
+        return "explicit_fault_event";
+    default:
+        return "unknown";
+    }
+}
+
+bool MqttClient::buildFaultStatusPayload(const FaultHandler& faultHandler, char* buffer, size_t bufferSize){
+    if(buffer == nullptr || bufferSize == 0){
+        return false;
+    }
+
+    FaultRecord fault = {FaultSource::BlindsController, FaultReason::None, ESP_OK};
+    int written = 0;
+    if(!faultHandler.getFault(fault)){
+        written = std::snprintf(buffer, bufferSize, "{\"fault\":false}");
+    }
+    else{
+        written = std::snprintf(buffer,
+                                bufferSize,
+                                "{\"fault\":true,\"source\":\"%s\",\"reason\":\"%s\",\"esp_err\":%d,\"esp_err_name\":\"%s\"}",
+                                faultSourceName(fault.source),
+                                faultReasonName(fault.reason),
+                                static_cast<int>(fault.espErr),
+                                esp_err_to_name(fault.espErr));
+    }
+
+    return written >= 0 && static_cast<size_t>(written) < bufferSize;
+}
+
 static bool commandTopicMatches(esp_mqtt_event_handle_t event){
     if(event == nullptr || event->topic == nullptr){
         return false;
@@ -113,7 +189,8 @@ static bool commandTopicMatches(esp_mqtt_event_handle_t event){
            std::memcmp(event->topic, AppConfig::mqttCommandTopic, commandTopicLen) == 0;
 }
 
-MqttClient::MqttClient(BlindsCommandQueue& commandQueue): commandQueue_(commandQueue){}
+MqttClient::MqttClient(BlindsCommandQueue& commandQueue, FaultHandler& faultHandler)
+    : commandQueue_(commandQueue), faultHandler_(faultHandler){}
 
 esp_err_t MqttClient::init(const char* brokerUri, const char* username, const char* password){
     if(brokerUri == nullptr || std::strlen(brokerUri) == 0){
@@ -156,6 +233,14 @@ esp_err_t MqttClient::start(EventGroupHandle_t wifiEvents){
         return ESP_OK;
     }
 
+    if(statusTaskHandle_ == nullptr){
+        if(xTaskCreate(statusTask, "MQTTStatus", MQTT_STATUS_TASK_STACK, this, MQTT_STATUS_TASK_PRIORITY, &statusTaskHandle_) != pdPASS){
+            statusTaskHandle_ = nullptr;
+            return ESP_FAIL;
+        }
+        faultHandler_.setChangeTask(statusTaskHandle_);
+    }
+
     wifiEvents_ = wifiEvents;
     if(xTaskCreate(startTask, "MQTTStart", startTaskStack_, this, startTaskPriority_, &startTaskHandle_) != pdPASS){
         startTaskHandle_ = nullptr;
@@ -191,6 +276,47 @@ void MqttClient::startTaskLoop(){
     vTaskDelete(nullptr);
 }
 
+void MqttClient::statusTask(void* userCtx){
+    auto* self = static_cast<MqttClient*>(userCtx);
+    if(self == nullptr){
+        vTaskDelete(nullptr);
+        return;
+    }
+
+    self->statusTaskLoop();
+}
+
+void MqttClient::statusTaskLoop(){
+    while(true){
+        ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+        if(mqttConnected_){
+            publishFaultStatus();
+        }
+    }
+}
+
+esp_err_t MqttClient::publishFaultStatus(){
+    char payload[MQTT_STATUS_PAYLOAD_BUFFER_SIZE] = {};
+    if(!buildFaultStatusPayload(faultHandler_, payload, sizeof(payload))){
+        ESP_LOGW(TAG_MQTT, "Fault status payload build failed");
+        return ESP_ERR_INVALID_SIZE;
+    }
+
+    const int msgId = esp_mqtt_client_publish(client_,
+                                              AppConfig::mqttStatusTopic,
+                                              payload,
+                                              0,
+                                              AppConfig::mqttQos,
+                                              AppConfig::mqttRetain);
+    if(msgId < 0){
+        ESP_LOGW(TAG_MQTT, "Fault status publish failed: %d", msgId);
+        return ESP_FAIL;
+    }
+
+    ESP_LOGI(TAG_MQTT, "Published fault status");
+    return ESP_OK;
+}
+
 void MqttClient::mqttEventHandler(void* handlerArgs, esp_event_base_t eventBase, int32_t eventId, void* eventData){
     (void)eventBase;
 
@@ -206,6 +332,7 @@ void MqttClient::mqttEventHandler(void* handlerArgs, esp_event_base_t eventBase,
 void MqttClient::handleMqttEvent(esp_mqtt_event_id_t eventId, esp_mqtt_event_handle_t event){
     switch(eventId){
     case MQTT_EVENT_CONNECTED: {
+        mqttConnected_ = true;
         ESP_LOGI(TAG_MQTT, "MQTT connected");
         const int msgId = esp_mqtt_client_subscribe(client_, AppConfig::mqttCommandTopic, AppConfig::mqttQos);
         if(msgId < 0){
@@ -214,6 +341,7 @@ void MqttClient::handleMqttEvent(esp_mqtt_event_id_t eventId, esp_mqtt_event_han
         else{
             ESP_LOGI(TAG_MQTT, "Subscribed to MQTT command topic, msg_id=%d", msgId);
         }
+        publishFaultStatus();
         break;
     }
     case MQTT_EVENT_DATA: {
@@ -247,6 +375,7 @@ void MqttClient::handleMqttEvent(esp_mqtt_event_id_t eventId, esp_mqtt_event_han
         break;
     }
     case MQTT_EVENT_DISCONNECTED:
+        mqttConnected_ = false;
         ESP_LOGW(TAG_MQTT, "MQTT disconnected");
         break;
     case MQTT_EVENT_ERROR:

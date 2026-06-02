@@ -40,8 +40,10 @@ private:
     mutable portMUX_TYPE faultMux_ = portMUX_INITIALIZER_UNLOCKED;
     bool hasFault_ = false;
     FaultRecord fault_ = {FaultSource::BlindsController, FaultReason::None, ESP_OK};
+    TaskHandle_t changeTask_ = nullptr;
 
 public:
+    void setChangeTask(TaskHandle_t task);
     void record(FaultSource source, FaultReason reason, esp_err_t espErr);
     void recordFromISR(FaultSource source, FaultReason reason, esp_err_t espErr);
     bool hasFault() const;
