@@ -83,6 +83,42 @@ void test_command_queue_overflow_records_fault(void){
     assertFault(faults, FaultSource::CommandQueue, FaultReason::CommandQueueOverflow, ESP_FAIL);
 }
 
+void test_fault_handler_notifies_only_first_fault(void){
+    FaultHandler faults;
+    faults.setChangeTask(xTaskGetCurrentTaskHandle());
+    while(ulTaskNotifyTake(pdTRUE, 0) > 0){}
+
+    faults.record(FaultSource::BlindsController, FaultReason::MotorStopFailed, ESP_FAIL);
+    TEST_ASSERT_EQUAL_UINT32(1, ulTaskNotifyTake(pdTRUE, 0));
+
+    faults.record(FaultSource::MotorController, FaultReason::RmtRefillFailed, ESP_ERR_INVALID_STATE);
+    TEST_ASSERT_EQUAL_UINT32(0, ulTaskNotifyTake(pdTRUE, 0));
+}
+
+void test_fault_status_payload_without_fault(void){
+    FaultHandler faults;
+    char payload[160] = {};
+
+    TEST_ASSERT_TRUE(MqttClient::buildFaultStatusPayload(faults, payload, sizeof(payload)));
+    TEST_ASSERT_EQUAL_STRING("{\"fault\":false}", payload);
+}
+
+void test_fault_status_payload_with_fault(void){
+    FaultHandler faults;
+    char payload[160] = {};
+    faults.record(FaultSource::BlindsController, FaultReason::MotorStopFailed, ESP_FAIL);
+
+    TEST_ASSERT_TRUE(MqttClient::buildFaultStatusPayload(faults, payload, sizeof(payload)));
+    TEST_ASSERT_EQUAL_STRING("{\"fault\":true,\"source\":\"blinds_controller\",\"reason\":\"motor_stop_failed\",\"esp_err\":-1,\"esp_err_name\":\"ESP_FAIL\"}", payload);
+}
+
+void test_fault_status_payload_rejects_small_buffer(void){
+    FaultHandler faults;
+    char payload[8] = {};
+
+    TEST_ASSERT_FALSE(MqttClient::buildFaultStatusPayload(faults, payload, sizeof(payload)));
+}
+
 void test_motor_moving_up(void){
     FakeMotor fMotor;
     FaultHandler faults;
@@ -877,6 +913,10 @@ extern "C" void app_main(void) {
     RUN_TEST(test_fault_handler_records_fault);
     RUN_TEST(test_fault_handler_preserves_first_fault);
     RUN_TEST(test_command_queue_overflow_records_fault);
+    RUN_TEST(test_fault_handler_notifies_only_first_fault);
+    RUN_TEST(test_fault_status_payload_without_fault);
+    RUN_TEST(test_fault_status_payload_with_fault);
+    RUN_TEST(test_fault_status_payload_rejects_small_buffer);
     RUN_TEST(test_motor_moving_up);
     RUN_TEST(test_motor_moving_down);
     RUN_TEST(test_same_button_toggle_up);
