@@ -17,12 +17,19 @@
 
 static const char *TAG_MAIN = "MAIN";
 
+static FaultHandler faultHandler;
+static BlindsCommandQueue commandsQueue(faultHandler);
+static Tmc2209Driver motorDriver(AppConfig::UARTDriverPin, commandsQueue);
+static MotorController motor(AppConfig::motorPins, commandsQueue, faultHandler);
+static BlindsController blinds(motor, commandsQueue, faultHandler);
+static ButtonHandler buttonHandler(AppConfig::buttonPins, commandsQueue);
+static HomeSensor homeSensor(AppConfig::homeSensorPin, commandsQueue, faultHandler);
+static Wifi wifi;
+static MqttClient mqtt(commandsQueue, faultHandler);
+
 extern "C" void app_main(void) {
 
     esp_err_t err = ESP_OK;
-
-    FaultHandler faultHandler;
-    BlindsCommandQueue commandsQueue(faultHandler);
     err = commandsQueue.init();
     if(err != ESP_OK){
         ESP_LOGE(TAG_MAIN, "Command queue init failed: %s", esp_err_to_name(err));
@@ -35,7 +42,6 @@ extern "C" void app_main(void) {
         esp_restart();
     };
 
-    Tmc2209Driver motorDriver(AppConfig::UARTDriverPin, commandsQueue);
     err = motorDriver.init();
     if(err != ESP_OK){
         ESP_LOGE(TAG_MAIN, "TMC2209 init failed: %s", esp_err_to_name(err));
@@ -47,36 +53,29 @@ extern "C" void app_main(void) {
         esp_restart();
     };
 
-    MotorController motor(AppConfig::motorPins, commandsQueue, faultHandler);
     err = motor.init();
     if(err != ESP_OK){
         ESP_LOGE(TAG_MAIN, "Motor init failed: %s", esp_err_to_name(err));
         esp_restart();
     };
 
-    BlindsController blinds(motor, commandsQueue, faultHandler);
-
-    ButtonHandler buttonHandler(AppConfig::buttonPins, commandsQueue);
     err = buttonHandler.init();
     if(err != ESP_OK){
         ESP_LOGE(TAG_MAIN, "Button handler init failed: %s", esp_err_to_name(err));
         esp_restart();
     };
 
-    HomeSensor homeSensor(AppConfig::homeSensorPin, commandsQueue, faultHandler);
     err = homeSensor.init();
     if(err != ESP_OK){
         ESP_LOGE(TAG_MAIN, "Home sensor init failed: %s", esp_err_to_name(err));
         esp_restart();
     };
 
-    Wifi wifi;
     err = wifi.startAndConnect(ConnSecrets::wifiSsid, ConnSecrets::wifiPassword);
     if(err != ESP_OK){
         ESP_LOGW(TAG_MAIN, "WiFi start/connect failed, continuing without WiFi: %s", esp_err_to_name(err));
     }
 
-    MqttClient mqtt(commandsQueue, faultHandler);
     err = mqtt.init(ConnSecrets::mqttBrokerUri, ConnSecrets::mqttUsername, ConnSecrets::mqttPassword);
     if(err != ESP_OK){
         ESP_LOGW(TAG_MAIN, "MQTT init failed, continuing without MQTT: %s", esp_err_to_name(err));
