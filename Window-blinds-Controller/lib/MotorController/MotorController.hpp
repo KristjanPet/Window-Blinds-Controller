@@ -17,6 +17,14 @@ enum class MotorState{
     DOWN
 };
 
+/**
+ * @brief Low-level stepper motor controller for the blinds mechanism.
+ *
+ * Owns STEP/DIR/EN GPIO control, RMT pulse generation, and PCNT-based position
+ * tracking. Movement completion and fault conditions are reported upward through
+ * the command queue and fault handler; high-level blinds policy stays outside
+ * this class.
+ */
 class MotorController : public IMotor{
     
 private:
@@ -95,13 +103,71 @@ private:
     void updateRampAfterStep();
     esp_err_t startMovement(MotorState state, uint32_t dirLevel);
 public:
+    /**
+     * @brief Create a motor controller with mandatory hardware and reporting dependencies.
+     *
+     * @param pins STEP, DIR, and enable GPIO assignments.
+     * @param commandsQueue Queue used to report motor events to the blinds controller.
+     * @param faultHandler Fault recorder used for motor-control failures.
+     */
     MotorController(const MotorPins& pins, BlindsCommandQueue& commandsQueue, FaultHandler& faultHandler);
+
+    /**
+     * @brief Initialize motor GPIO, RMT pulse generation, PCNT position tracking, and the refill task.
+     *
+     * @return ESP_OK on success, or an ESP-IDF error from the failed setup step.
+     */
     esp_err_t init();
+
+    /**
+     * @brief Move toward a controller position target.
+     *
+     * @param targetStep Target position in controller step units.
+     * @param isCalibrating Allows calibration movement toward the home direction.
+     * @return ESP_OK when movement is started or completed, ESP_ERR_INVALID_ARG for an
+     *         out-of-range target, or another ESP-IDF error if hardware start fails.
+     */
     esp_err_t move(int32_t targetStep, bool isCalibrating = false) override;
+
+    /**
+     * @brief Move toward the currently known maximum controller position.
+     *
+     * @return ESP_OK when movement is started or completed, or an error from move().
+     */
     esp_err_t moveToMax() override;
+
+    /**
+     * @brief Stop pulse output and refresh the tracked position from PCNT.
+     *
+     * @return ESP_OK on success, or the first error encountered while stopping hardware.
+     */
     esp_err_t stop() override;
+
+    /**
+     * @brief Mark the current position relative to the home reference.
+     *
+     * @param offset Positive controller-step offset applied away from the detected home point.
+     */
     void setHoming(int32_t offset = 0) override;
+
+    /**
+     * @brief Set the controller soft maximum from the current position.
+     *
+     * @param offset Positive controller-step offset subtracted from the current position.
+     */
     void setMaxStep(int32_t offset = 0) override;
+
+    /**
+     * @brief Get the current tracked controller position.
+     *
+     * @return Current position in controller step units, refreshed from PCNT while moving when possible.
+     */
     int32_t getCurrentStep() const override;
+
+    /**
+     * @brief Get the currently known controller soft maximum.
+     *
+     * @return Maximum position in controller step units.
+     */
     int32_t getMaxStep() const override;
 };

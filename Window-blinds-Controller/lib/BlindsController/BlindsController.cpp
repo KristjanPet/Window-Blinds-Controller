@@ -1,7 +1,5 @@
 #include "BlindsController.hpp"
-
 #include <climits>
-
 #include "AppConfig.hpp"
 
 static const char* TAG = "BLINDS";
