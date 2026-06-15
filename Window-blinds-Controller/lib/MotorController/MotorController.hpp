@@ -126,7 +126,8 @@ public:
      * @brief Move toward a controller position target.
      *
      * @param targetStep Target position in controller step units.
-     * @param isCalibrating Allows calibration movement toward the home direction.
+     * @param isCalibrating Allows calibration movement toward the home direction;
+     *        defaults to false for normal soft-limit-checked movement.
      * @return ESP_OK when movement is started or completed, ESP_ERR_INVALID_ARG for an
      *         out-of-range target, or another ESP-IDF error if hardware start fails.
      */
@@ -149,14 +150,16 @@ public:
     /**
      * @brief Mark the current position relative to the home reference.
      *
-     * @param offset Positive controller-step offset applied away from the detected home point.
+     * @param offset Positive controller-step offset applied away from the detected home point;
+     *        defaults to 0 to mark the current position as home.
      */
     void setHoming(int32_t offset = 0) override;
 
     /**
      * @brief Set the controller soft maximum from the current position.
      *
-     * @param offset Positive controller-step offset subtracted from the current position.
+     * @param offset Positive controller-step offset subtracted from the current position;
+     *        defaults to 0 to use the current position as the soft maximum.
      */
     void setMaxStep(int32_t offset = 0) override;
 
