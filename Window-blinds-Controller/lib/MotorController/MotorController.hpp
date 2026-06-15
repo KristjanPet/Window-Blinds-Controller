@@ -11,10 +11,13 @@
 #include "FaultHandler.hpp"
 #include "AppConfig.hpp"
 
+/**
+ * @brief Low-level motor motion state.
+ */
 enum class MotorState{
-    STOPPED,
-    UP,
-    DOWN
+    STOPPED, ///< No pulse output is active.
+    UP,      ///< Moving toward the configured maximum/open position.
+    DOWN     ///< Moving toward the home/minimum position.
 };
 
 /**
