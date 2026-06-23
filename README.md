@@ -1,71 +1,19 @@
 # Window-Blinds-Controller
 
 ## About
-Small embedded project for controlling window blinds using **ESP32** and a **stepper motor**.
+A compact embedded project for controlling window blinds with an **ESP32** and a **stepper motor**.
 
-The goal is to build a reliable and clean blinds controller that can:
-- open and close blinds with wall buttons,
-- support scheduled opening and closing,
-- use a home/reference position,
-- later connect to a server for remote control and time/date configuration.
+It is designed as a clean, reliable demonstration of practical embedded development: hardware control, calibration, fault detection, and basic smart-home connectivity.
 
----
-
-## Project Status
-Early planning and hardware research phase.
-
-Current focus:
-- understanding the existing motor and sensor setup,
-- preparing hardware wiring,
-- defining software structure,
-- creating clean project documentation.
+The controller aims to:
+- open and close blinds using wall buttons,
+- perform automatic homing/reference calibration,
+- detect motor stalls and report errors,
+- support Wi-Fi and MQTT for remote control, scheduling, and status checks.
 
 ---
 
-## Planned Features
-- ESP32-based control logic
-- Stepper motor driven blinds movement
-- Wall switch/button control
-- Scheduled open/close actions
-- Home/reference detection
-- Remote configuration over network/server connection
-- Expandable architecture for future features
-
----
-
-## Hardware Notes
-Current prototype assumptions:
-- **ESP32** as main controller
-- **12V stepper motor** 
-- **single NJK home reference sensor**
-
----
-
-## Development Approach
-This project is being built with focus on:
-- clean structure
-- safe hardware interfacing
-- reliable error handling
-- maintainable embedded architecture
-- documentation-first workflow
-
----
-
-## Repository Goals
-This repository will contain:
-- project documentation
-- hardware wiring scheme
-- software structure diagrams
-- firmware source code
-- setup and usage instructions
-
----
-
-## Initial Task List
-- Research how the system works and prepare documentation
-- Prepare hardware wiring scheme in EasyEDA
-- Define program/software structure in draw.io
-- Initialize repository and project documentation
+## 
 
 ---
 
