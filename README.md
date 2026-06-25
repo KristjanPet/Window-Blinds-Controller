@@ -31,35 +31,12 @@ Window-Blinds-Controller/
 |-- Images/
 |   `-- schematics.png
 `-- Window-blinds-Controller/
-    |-- platformio.ini
-    |-- CMakeLists.txt
-    |-- sdkconfig.esp32-s3
-    |-- src/
-    |   `-- main.cpp
-    |-- lib/
-    |   |-- BlindsController/
-    |   |-- MotorController/
-    |   |-- Tmc2209Driver/
-    |   |-- ButtonHandler/
-    |   |-- HomeSensor/
-    |   |-- Connection/
-    |   `-- Common/
-    |-- test/
-    |   |-- test_blinds_controller/
-    |   |-- test_blinds_command_queue/
-    |   |-- test_motor_controller/
-    |   |-- test_mqtt_client/
-    |   |-- test_fault_handler/
-    |   `-- fakes/
-    `-- logs/
-        `-- TMC2209_current_readings.log
+    `-- README.md
 ```
 
-- `src/main.cpp` initializes the ESP32 app, hardware modules, FreeRTOS tasks, Wi-Fi, MQTT, and startup calibration.
-- `lib/` contains the embedded modules for blinds logic, motor control, driver communication, buttons, sensors, connectivity, shared types, and fault handling.
-- `test/` contains PlatformIO unit tests and fakes for controller behavior, command handling, MQTT parsing, motor logic, and fault reporting.
 - `Images/` stores the hardware wiring schematic used in the documentation.
 - `Doxyfile` configures API documentation generation for the project.
+- `Window-blinds-Controller/` contains the PlatformIO firmware project, source modules, tests, and firmware-specific documentation.
 
 ---
 
