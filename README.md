@@ -1,45 +1,49 @@
-# Window-Blinds-Controller
+# Window Blinds Controller
 
-## About
-A compact embedded project for controlling window blinds with an **ESP32** and a **stepper motor**.
+ESP32-S3 based embedded controller for motorized window blinds, built with C++/ESP-IDF, TMC2209 stepper control, FreeRTOS event-driven architecture, MQTT integration, custom KiCad PCB, and custom mechanical parts.
 
-It is designed as a clean, reliable demonstration of practical embedded development: hardware control, calibration, fault detection, and basic smart-home connectivity.
-
----
-
-## Project Features
-- 🎛️ Wall-button controls for opening and closing the blinds
-- 🧭 Automatic homing/reference calibration with a dedicated home sensor
-- 〰️ Stepper motor control using ESP32 RMT pulse generation and PCNT position tracking
-- ⚙️ TMC2209 UART driver setup with DIAG/stall event handling
-- 🛡️ Stall detection, recovery logic, and centralized fault reporting
-- 📡 Wi-Fi and MQTT support for remote up, down, stop, and percentage-position commands
-- 🧱 OOP-based separation between motor control, sensors, buttons, connectivity, and blinds logic
-- 🔁 FreeRTOS task-based architecture with a central command queue
-- 🧪 PlatformIO unit tests for controller behavior, MQTT parsing, command queue, motor logic, and fault handling
-- 📁 Clean PlatformIO/CMake project structure
-- 📄 Doxygen-friendly API comments and project documentation setup
+<p align="center">
+  <img src="Images/final_assembly.jpg" width="32%">
+  <img src="Images/pcb_render.png" width="32%">
+  <img src="Images/cad_parts.png" width="32%">
+</p>
 
 ---
 
-## Project Structure
-```text
-Window-Blinds-Controller/
-|-- README.md
-|-- LICENSE
-|-- Doxyfile
-|-- Images/
-|   `-- schematics.png
-`-- Window-blinds-Controller/
-    `-- README.md
-```
+## What this project demonstrates
 
-- `Images/` stores the hardware wiring schematic used in the documentation.
-- `Doxyfile` configures API documentation generation for the project.
-- `Window-blinds-Controller/` contains the PlatformIO firmware project, source modules, tests, and firmware-specific documentation.
+- Embedded C++ architecture using separated modules and interfaces
+- ESP32-S3 firmware development with ESP-IDF and PlatformIO
+- FreeRTOS task-based design with a central command/event queue
+- Stepper motor control using RMT pulse generation and PCNT position tracking
+- TMC2209 UART driver configuration and DIAG/stall event handling
+- Homing, calibration, soft limits, stall recovery, and fault-state handling
+- MQTT-based smart-home command interface
+- Unit testing with PlatformIO/Unity and fake hardware abstractions
+- Custom KiCad schematic and PCB design
+- Custom mechanical design: CNC aluminium motor/rope holder and 3D printed enclosure
+- Doxygen API documentation
+- Project planning using Jira and draw.io diagrams
 
 ---
 
-## hardware wiring scheme
+## Hardware
 
-![schematics](Images/schematics.png)
+Main components:
+
+| Component | Purpose |
+|---|---|
+| ESP32-S3 | Main MCU, Wi-Fi, FreeRTOS firmware |
+| TMC2209 | Stepper motor driver with UART configuration and DIAG/stall signal |
+| Stepper motor | Blind movement |
+| Home/reference sensor | Calibration and homing |
+| Wall buttons | Local manual control |
+| Custom PCB | Power, MCU, driver, sensor, and connector integration |
+
+Hardware design files:
+
+- KiCad schematic
+- KiCad PCB layout
+- PCB render/export
+- wiring schematic
+- BOM
