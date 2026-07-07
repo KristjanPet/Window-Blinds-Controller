@@ -47,3 +47,19 @@ Hardware design files:
 - PCB render/export
 - wiring schematic
 - BOM
+
+## Mechanical design
+
+The project also includes custom mechanical parts:
+
+- CNC aluminium motor and rope holder for the blind mechanism
+- front/back aluminium mounting holders
+- 3D printed electronics case
+- 3D printed cover
+- CAD models and exported STL/STEP files
+
+## Documentation and planning
+
+- Doxygen configuration for generated C++ API documentation
+- draw.io diagrams for system architecture and firmware flow
+- Jira used for task planning, issue tracking, and development organization

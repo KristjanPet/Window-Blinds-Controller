@@ -2,42 +2,34 @@
 
 This folder contains the ESP32-S3 PlatformIO firmware project for the window blinds controller.
 
-```text
-Window-blinds-Controller/
-|-- README.md
-|-- platformio.ini
-|-- CMakeLists.txt
-|-- sdkconfig.esp32-s3
-|-- src/
-|   |-- CMakeLists.txt
-|   `-- main.cpp
-|-- lib/
-|   |-- BlindsController/
-|   |-- MotorController/
-|   |-- Tmc2209Driver/
-|   |-- ButtonHandler/
-|   |-- HomeSensor/
-|   |-- Connection/
-|   `-- Common/
-|-- test/
-|   |-- test_blinds_controller/
-|   |-- test_blinds_command_queue/
-|   |-- test_motor_controller/
-|   |-- test_mqtt_client/
-|   |-- test_home_sensor/
-|   |-- test_fault_handler/
-|   `-- fakes/
-`-- logs/
-    `-- TMC2209_current_readings.log
-```
+## Firmware architecture
 
-- `platformio.ini` defines the ESP32-S3 board, ESP-IDF framework, upload settings, and build flags.
-- `src/main.cpp` initializes the app, hardware modules, FreeRTOS tasks, Wi-Fi, MQTT, and startup calibration.
-- `lib/BlindsController/` contains the high-level blinds state machine and command queue.
-- `lib/MotorController/` handles stepper movement, RMT pulse generation, PCNT position tracking, and the motor abstraction used by tests.
-- `lib/Tmc2209Driver/` configures the TMC2209 stepper driver over UART and forwards DIAG/stall events.
-- `lib/ButtonHandler/` and `lib/HomeSensor/` handle local GPIO inputs for manual control and calibration.
-- `lib/Connection/` contains Wi-Fi and MQTT support, including the example secrets header.
-- `lib/Common/` contains shared configuration, types, and centralized fault handling.
-- `test/` contains PlatformIO unit tests and fakes for controller behavior, command handling, MQTT parsing, motor logic, sensor logic, and fault reporting.
-- `logs/` stores captured hardware/debug readings used during development.
+The firmware is split into small C++ modules with clear responsibilities:
+
+| Module | Responsibility |
+|---|---|
+| `BlindsController` | High-level state machine, calibration, movement policy, stall recovery |
+| `MotorController` | STEP/DIR/EN control, RMT pulse generation, PCNT position tracking |
+| `Tmc2209Driver` | UART register access, driver configuration, DIAG/stall event forwarding |
+| `BlindsCommandQueue` | Central FreeRTOS command/event queue |
+| `ButtonHandler` | Local wall-button input |
+| `HomeSensor` | Reference sensor and homing validation |
+| `MqttClient` | Remote commands and fault status publishing |
+| `FaultHandler` | Thread-safe first-fault recording |
+
+## Key engineering decisions
+
+### RMT for step pulse generation
+Stepper pulses are generated using the ESP32 RMT peripheral instead of software delay loops, reducing timing jitter and CPU load.
+
+### PCNT for position tracking
+The ESP32 PCNT peripheral is used to track generated step pulses and maintain position information.
+
+### Event-driven control
+Buttons, MQTT commands, motor events, home sensor events, and stall events are normalized into a central FreeRTOS command queue.
+
+### Fault-first design
+The system records the first fault and enters a safe fault state instead of silently ignoring failed operations.
+
+### Testable architecture
+High-level logic depends on interfaces/fakes where possible, allowing controller behavior and fault paths to be tested without real hardware.
