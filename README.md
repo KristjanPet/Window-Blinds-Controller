@@ -35,25 +35,17 @@ Main components:
 |---|---|
 | ESP32-S3 | Main MCU, Wi-Fi, FreeRTOS firmware |
 | TMC2209 | Stepper motor driver with UART configuration and DIAG/stall signal |
-| Stepper motor | Blind movement |
-| Home/reference sensor | Calibration and homing |
+| Nema 17 Stepper motor | Blind movement |
+| NJK-5002C Home/reference sensor | Calibration and homing |
 | Wall buttons | Local manual control |
 | Custom PCB | Power, MCU, driver, sensor, and connector integration |
-
-Hardware design files:
-
-- KiCad schematic
-- KiCad PCB layout
-- PCB render/export
-- wiring schematic
-- BOM
 
 ## Mechanical design
 
 The project also includes custom mechanical parts:
 
 - CNC aluminium motor and rope holder for the blind mechanism
-- front/back aluminium mounting holders
+- 3D printed front/back mounting holders for aluminium
 - 3D printed electronics case
 - 3D printed cover
 - CAD models and exported STL/STEP files
