@@ -4,6 +4,8 @@ This module configures and verifies the TMC2209 stepper motor driver over UART a
 
 Datasheet: [TMC2209 Datasheet Rev. 1.09](https://www.analog.com/media/en/technical-documentation/data-sheets/tmc2209_datasheet_rev1.09.pdf)
 
+Stepper motor used for project: [Nema 17 17HS4401](https://www.alldatasheet.com/datasheet-pdf/pdf/1245671/NINGBO/17HS4401.html)
+
 ## Purpose
 
 The driver is responsible for:
@@ -75,9 +77,10 @@ The final project value is:
 
 The threshold was chosen using measurement plots from monitored `SG_RESULT` values. Normal movement should stay above the selected threshold with margin, while real stalls should drop below it and generate a DIAG pulse.
 
-<!-- Add tuning plot later, for example:
-![StallGuard tuning plot](../../../Images/stallguard_tuning.png)
--->
+<p>
+  <img src="Images/sg_result_all.png" width="32%">
+  <img src="Images/sg_result_close.png" width="32%">
+</p>
 
 ## Event handling
 
