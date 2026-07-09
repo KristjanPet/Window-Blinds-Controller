@@ -28,7 +28,7 @@ namespace AppConfig{
     constexpr int32_t offsetOfMinStep = 1000; //offset from home detected
     constexpr int32_t normalStallBackoffSteps = 1000 * 10;
     constexpr uint8_t normalStallMaxRecoveries = 3;
-    constexpr int32_t stepStallThrehold = 1000 * 63;
+    constexpr int32_t stepStallThreshold = 1000 * 63; //above this threshold, stall is considerd as max limit
     static_assert(offsetOfMaxStep > 0, "offsetOfMaxStep must be greater than zero");
     static_assert(offsetOfMinStep > 0, "offsetOfMinStep must be greater than zero");
     static_assert(normalStallBackoffSteps > 0, "normalStallBackoffSteps must be greater than zero");

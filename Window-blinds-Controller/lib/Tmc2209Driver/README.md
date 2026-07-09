@@ -4,8 +4,6 @@ This module configures and verifies the TMC2209 stepper motor driver over UART a
 
 Datasheet: [TMC2209 Datasheet Rev. 1.09](https://www.analog.com/media/en/technical-documentation/data-sheets/tmc2209_datasheet_rev1.09.pdf)
 
-Stepper motor used for project: [Nema 17 17HS4401](https://www.alldatasheet.com/datasheet-pdf/pdf/1245671/NINGBO/17HS4401.html)
-
 ## Purpose
 
 The driver is responsible for:
