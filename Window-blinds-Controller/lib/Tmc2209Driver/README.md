@@ -78,8 +78,8 @@ The final project value is:
 The threshold was chosen using measurement plots from monitored `SG_RESULT` values. Normal movement should stay above the selected threshold with margin, while real stalls should drop below it and generate a DIAG pulse.
 
 <p>
-  <img src="Images/sg_result_all.png" width="32%">
-  <img src="Images/sg_result_close.png" width="32%">
+  <img src="../../../Images/sg_result_all.png" >
+  <img src="../../../Images/sg_result_close.png">
 </p>
 
 ## Event handling
