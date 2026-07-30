@@ -1,6 +1,7 @@
 #include "ButtonHandler.hpp"
 
 static const char* TAG = "BUTTON";
+static constexpr int BUTTON_PRESSED_LEVEL = 1;
 
 ButtonHandler::ButtonHandler(const ButtonPins& pins, BlindsCommandQueue& commandQueue)
              : pins_(pins), commandQueue_(commandQueue){}
@@ -25,7 +26,7 @@ esp_err_t ButtonHandler::init(){
         .mode = GPIO_MODE_INPUT,
         .pull_up_en = GPIO_PULLUP_DISABLE,
         .pull_down_en = GPIO_PULLDOWN_DISABLE,
-        .intr_type = GPIO_INTR_NEGEDGE
+        .intr_type = GPIO_INTR_POSEDGE
     };
     ESP_RETURN_ON_ERROR(gpio_config(&buttIoConf), TAG, "Failed to config button gpio");
 
@@ -67,12 +68,12 @@ void ButtonHandler::buttonTask(void *arg){
                     continue;
             }
 
-            if (!gpio_get_level(pin)) {
+            if (gpio_get_level(pin) == BUTTON_PRESSED_LEVEL) {
                 if(self->commandQueue_.send(cmd, 0) != pdTRUE){
                     ESP_LOGE(TAG, "Error sending button command");
                 }
 
-                while (!gpio_get_level(pin)) {
+                while (gpio_get_level(pin) == BUTTON_PRESSED_LEVEL) {
                     vTaskDelay(pdMS_TO_TICKS(10));
                 }
             }

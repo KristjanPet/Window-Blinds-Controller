@@ -2,7 +2,7 @@
 
 This folder contains the PCB and electronics design files for the window blinds controller.
 
-The electronics are built around an ESP32-S3 development board, a TMC2209 stepper motor driver, a 12 V to 5 V buck converter, input protection, button/sensor connectors, and a Schmitt-trigger input stage.
+The electronics are built around an ESP32-S3 development board, a TMC2209 stepper motor driver, a 12 V to 5 V buck converter, input protection, button/sensor connectors, and dual-inverter Schmitt-trigger input paths.
 
 ## Main electronics
 
@@ -11,7 +11,7 @@ The electronics are built around an ESP32-S3 development board, a TMC2209 steppe
 | ESP32-S3 development board |   1 | `ESP32-S3-DEVKITC-1-N16R8V` | Main MCU, firmware, Wi-Fi, MQTT, GPIO control                           |
 | Stepper driver             |   1 | `TMC2209 SilentStepStick`   | Stepper motor driver with UART configuration and DIAG/StallGuard output |
 | Buck converter             |   1 | 12 V to 3 V DC-DC buck      | Generates 3 V supply from the 12 V input                                |
-| Schmitt trigger            |   1 | `74HC14`                    | Cleans digital input signals                                            |
+| Schmitt trigger            |   1 | `74HC14`                    | Cleans three input signals with two inverter gates per signal            |
 | ESD protection diodes      |   3 | `PESD3V3S1UL`               | Input signal protection                                                 |
 | TVS diode                  |   1 | `SMBJ15A`                   | 12 V input transient protection                                         |
 | Polyfuse                   |   1 | 2 A                         | Input overcurrent protection                                            |
@@ -34,6 +34,19 @@ The electronics are built around an ESP32-S3 development board, a TMC2209 steppe
 | 4-pin JST-XH |   1 | External wiring / motor-driver related connection |
 | 3-pin JST-XH |   1 | External input buttons connection                  |
 | 3-pin JST-XH |   1 | NJK-5002C home sensor connection                  |
+
+## Conditioned input logic
+
+Each external input passes through two gates of the 74HC14. The two inversions
+cancel, so the ESP32-S3 sees the same logical polarity as the signal entering the
+first gate. The final gate is a 3.3 V push-pull output, so the firmware keeps the
+ESP32 internal pull resistors disabled.
+
+| Input       | ESP32-S3 pin | Pre-Schmitt idle | Pre-Schmitt active | ESP32 idle | ESP32 active | Activation edge |
+| ----------- | -----------: | ---------------: | -----------------: | ---------: | -----------: | --------------: |
+| Up button   |     `GPIO12` |              LOW |               HIGH |        LOW |          HIGH |          Rising |
+| Down button |     `GPIO13` |              LOW |               HIGH |        LOW |          HIGH |          Rising |
+| Home sensor |     `GPIO14` |             HIGH |                LOW |       HIGH |           LOW |         Falling |
 
 ## External hardware
 

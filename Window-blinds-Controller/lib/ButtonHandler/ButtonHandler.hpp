@@ -29,7 +29,8 @@ struct ButtonIsrContext{
  *
  * Owns the physical button GPIO inputs, ISR-to-task button queue, and debounce
  * handling. Emits high-level UP/DOWN events through BlindsCommandQueue instead
- * of directly controlling the motor.
+ * of directly controlling the motor. The dual-inverter conditioned inputs are
+ * active-high: LOW while idle and HIGH while pressed.
  */
 class ButtonHandler{
 

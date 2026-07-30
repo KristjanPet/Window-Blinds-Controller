@@ -14,8 +14,10 @@
 /**
  * @brief GPIO-backed home/reference sensor for blinds calibration.
  *
- * Owns the home sensor GPIO input and ISR registration. Sensor edges are reported
- * upward as HOMING_REACHED events through the command queue; startup sensor
+ * Owns the active-low home sensor GPIO input and ISR registration. The
+ * dual-inverter conditioned signal is HIGH while idle and LOW when the sensor is
+ * active. Sensor edges are reported upward as HOMING_REACHED events through the
+ * command queue; startup sensor
  * validation reports HOMING_CHECK and fault events while recording stuck-sensor
  * failures with the fault handler.
  */
