@@ -102,10 +102,6 @@
           ""
         ],
         [
-          "unconnected_items|149540000|70600000|F.Cu|4|435cc0d3-5223-4539-b2cb-18683d019638|b27503fb-2ba6-4b75-899e-76d22ec3602c",
-          ""
-        ],
-        [
           "unconnected_items|172400000|121400000|F.Cu|4|8c4d05e9-e93f-405e-b46e-a523f2775b85|2e687591-0025-4aec-b22b-cdcce5090fce",
           ""
         ],
@@ -249,7 +245,9 @@
       "track_widths": [
         0.0,
         0.25,
-        0.8
+        0.5,
+        0.8,
+        1.2
       ],
       "tuning_pattern_settings": {
         "diff_pair_defaults": {
@@ -582,7 +580,7 @@
       "gencad": "",
       "idf": "",
       "netlist": "",
-      "plot": "../../../../../media/petko/486A-3CE3/",
+      "plot": "./",
       "pos_files": "",
       "specctra_dsn": "",
       "step": "",

@@ -2532,171 +2532,6 @@
 			)
 			(embedded_fonts no)
 		)
-		(symbol "Diode:PESD3V3S1UL"
-			(pin_numbers
-				(hide yes)
-			)
-			(pin_names
-				(hide yes)
-			)
-			(exclude_from_sim no)
-			(in_bom yes)
-			(on_board yes)
-			(in_pos_files yes)
-			(duplicate_pin_numbers_are_jumpers no)
-			(property "Reference" "D"
-				(at 0 2.54 0)
-				(show_name no)
-				(do_not_autoplace no)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-				)
-			)
-			(property "Value" "PESD3V3S1UL"
-				(at 0 -2.54 0)
-				(show_name no)
-				(do_not_autoplace no)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-				)
-			)
-			(property "Footprint" "Diode_SMD:D_SOD-882"
-				(at 0 -5.08 0)
-				(show_name no)
-				(do_not_autoplace no)
-				(hide yes)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-				)
-			)
-			(property "Datasheet" "https://assets.nexperia.com/documents/data-sheet/PESD3V3S1UL.pdf"
-				(at 0 5.08 0)
-				(show_name no)
-				(do_not_autoplace no)
-				(hide yes)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-				)
-			)
-			(property "Description" "Unidirectional ESD protection diode, 3.3V, SOD-882"
-				(at 0 7.62 0)
-				(show_name no)
-				(do_not_autoplace no)
-				(hide yes)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-				)
-			)
-			(property "ki_keywords" "diode"
-				(at 0 0 0)
-				(show_name no)
-				(do_not_autoplace no)
-				(hide yes)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-				)
-			)
-			(property "ki_fp_filters" "D*SOD?882"
-				(at 0 0 0)
-				(show_name no)
-				(do_not_autoplace no)
-				(hide yes)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-				)
-			)
-			(symbol "PESD3V3S1UL_0_1"
-				(polyline
-					(pts
-						(xy -1.27 -1.27) (xy -1.27 1.27) (xy -0.762 1.27)
-					)
-					(stroke
-						(width 0.254)
-						(type default)
-					)
-					(fill
-						(type none)
-					)
-				)
-				(polyline
-					(pts
-						(xy 1.27 0) (xy -1.27 0)
-					)
-					(stroke
-						(width 0)
-						(type default)
-					)
-					(fill
-						(type none)
-					)
-				)
-				(polyline
-					(pts
-						(xy 1.27 -1.27) (xy 1.27 1.27) (xy -1.27 0) (xy 1.27 -1.27)
-					)
-					(stroke
-						(width 0.254)
-						(type default)
-					)
-					(fill
-						(type none)
-					)
-				)
-			)
-			(symbol "PESD3V3S1UL_1_1"
-				(pin passive line
-					(at -3.81 0 0)
-					(length 2.54)
-					(name "K"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-					(number "1"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-				)
-				(pin passive line
-					(at 3.81 0 180)
-					(length 2.54)
-					(name "A"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-					(number "2"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-				)
-			)
-			(embedded_fonts no)
-		)
 		(symbol "Diode:SMAJ15A"
 			(pin_numbers
 				(hide yes)
@@ -4446,42 +4281,6 @@
 						)
 					)
 				)
-				(pin bidirectional line
-					(at -17.78 -12.7 0)
-					(length 5.08)
-					(name "UART"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-					(number "12"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-				)
-				(pin input line
-					(at -17.78 -7.62 0)
-					(length 5.08)
-					(name "SPRD"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-					(number "13"
-						(effects
-							(font
-								(size 1.016 1.016)
-							)
-						)
-					)
-				)
 				(pin input line
 					(at -17.78 -5.08 0)
 					(length 5.08)
@@ -4573,6 +4372,44 @@
 					)
 				)
 			)
+			(symbol "TMC2209_SILENTSTEPSTICK_1_0"
+				(pin input line
+					(at -17.78 -7.62 0)
+					(length 5.08)
+					(name "SPRD"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+					(number "12"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+				)
+				(pin bidirectional line
+					(at -17.78 -12.7 0)
+					(length 5.08)
+					(name "UART"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+					(number "13"
+						(effects
+							(font
+								(size 1.016 1.016)
+							)
+						)
+					)
+				)
+			)
 			(embedded_fonts no)
 		)
 	)
@@ -4639,12 +4476,6 @@
 		(uuid "24202a9c-7820-495a-8678-ab7b8cda4f45")
 	)
 	(junction
-		(at 60.96 170.18)
-		(diameter 0)
-		(color 0 0 0 1)
-		(uuid "2c0a7f07-7914-4c8c-a473-0eb2d8a9ed19")
-	)
-	(junction
 		(at 209.55 43.18)
 		(diameter 0)
 		(color 194 0 0 1)
@@ -4667,18 +4498,6 @@
 		(diameter 0)
 		(color 0 0 0 1)
 		(uuid "503bbd8f-e8af-4f27-ba09-c2fdf1be9627")
-	)
-	(junction
-		(at 111.76 163.83)
-		(diameter 0)
-		(color 0 0 0 0)
-		(uuid "50cf4366-7f89-48f2-bef4-1c46504843f0")
-	)
-	(junction
-		(at 146.05 170.18)
-		(diameter 0)
-		(color 0 0 0 0)
-		(uuid "5425325f-bfad-4bad-8f91-a98b590945fe")
 	)
 	(junction
 		(at 60.96 76.2)
@@ -4753,12 +4572,6 @@
 		(uuid "a6e95c48-0c07-4ac9-894a-fc26f059c864")
 	)
 	(junction
-		(at 146.05 186.69)
-		(diameter 0)
-		(color 0 0 0 1)
-		(uuid "a9207277-7387-4724-a82d-cddc6fef003e")
-	)
-	(junction
 		(at 60.96 142.24)
 		(diameter 0)
 		(color 0 0 0 1)
@@ -4775,12 +4588,6 @@
 		(diameter 0)
 		(color 194 0 0 1)
 		(uuid "b8f22775-fd44-4625-abcd-d6a3a9859bc6")
-	)
-	(junction
-		(at 60.96 163.83)
-		(diameter 0)
-		(color 0 0 0 1)
-		(uuid "bbfe32e0-be7f-4ce9-b7c4-7894e1e4d6db")
 	)
 	(junction
 		(at 36.83 60.96)
@@ -4805,12 +4612,6 @@
 		(diameter 0)
 		(color 194 0 0 1)
 		(uuid "e35b446b-cecd-467d-92c9-2dfeb061b62a")
-	)
-	(junction
-		(at 102.87 170.18)
-		(diameter 0)
-		(color 0 0 0 0)
-		(uuid "e3f1d5e4-e2fd-464f-9331-9ac97ba2b072")
 	)
 	(junction
 		(at 53.34 43.18)
@@ -5027,17 +4828,6 @@
 	)
 	(wire
 		(pts
-			(xy 60.96 170.18) (xy 60.96 186.69)
-		)
-		(stroke
-			(width 0)
-			(type default)
-			(color 0 0 0 1)
-		)
-		(uuid "1660aea3-54b2-41e0-bf01-44b152c95bfc")
-	)
-	(wire
-		(pts
 			(xy 137.16 153.67) (xy 172.72 153.67)
 		)
 		(stroke
@@ -5101,17 +4891,6 @@
 	)
 	(wire
 		(pts
-			(xy 60.96 163.83) (xy 60.96 170.18)
-		)
-		(stroke
-			(width 0)
-			(type default)
-			(color 0 0 0 1)
-		)
-		(uuid "2511b2f8-7609-48a7-b05a-109ae53d4f01")
-	)
-	(wire
-		(pts
 			(xy 132.08 96.52) (xy 138.43 96.52)
 		)
 		(stroke
@@ -5154,27 +4933,6 @@
 	)
 	(wire
 		(pts
-			(xy 76.2 170.18) (xy 60.96 170.18)
-		)
-		(stroke
-			(width 0)
-			(type default)
-			(color 0 0 0 1)
-		)
-		(uuid "3115a876-b14d-43a5-a32b-6d2afd12b4fa")
-	)
-	(wire
-		(pts
-			(xy 111.76 163.83) (xy 111.76 176.53)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "322cd9c6-53a9-4f00-8e90-82a272724915")
-	)
-	(wire
-		(pts
 			(xy 100.33 175.26) (xy 100.33 176.53)
 		)
 		(stroke
@@ -5208,7 +4966,7 @@
 	)
 	(wire
 		(pts
-			(xy 132.08 170.18) (xy 146.05 170.18)
+			(xy 132.08 170.18) (xy 156.21 170.18)
 		)
 		(stroke
 			(width 0)
@@ -5335,16 +5093,6 @@
 	)
 	(wire
 		(pts
-			(xy 146.05 170.18) (xy 156.21 170.18)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "6181c700-4125-4040-b01e-2fa076ae16ce")
-	)
-	(wire
-		(pts
 			(xy 102.87 81.28) (xy 102.87 100.33)
 		)
 		(stroke
@@ -5374,16 +5122,6 @@
 			(color 194 0 0 1)
 		)
 		(uuid "65675e02-a1f7-4314-83a5-5f9d4ca1c7f3")
-	)
-	(wire
-		(pts
-			(xy 146.05 170.18) (xy 146.05 175.26)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "65df1e63-cc38-4081-972b-2bf6bf918d88")
 	)
 	(wire
 		(pts
@@ -5534,16 +5272,6 @@
 	)
 	(wire
 		(pts
-			(xy 83.82 170.18) (xy 102.87 170.18)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "80b435cb-e05b-4a9a-9171-738dbd899339")
-	)
-	(wire
-		(pts
 			(xy 60.96 142.24) (xy 76.2 142.24)
 		)
 		(stroke
@@ -5555,18 +5283,7 @@
 	)
 	(wire
 		(pts
-			(xy 60.96 186.69) (xy 146.05 186.69)
-		)
-		(stroke
-			(width 0)
-			(type default)
-			(color 0 0 0 1)
-		)
-		(uuid "861429fb-ee8a-433f-99eb-1506af39902e")
-	)
-	(wire
-		(pts
-			(xy 102.87 162.56) (xy 102.87 170.18)
+			(xy 102.87 162.56) (xy 102.87 176.53)
 		)
 		(stroke
 			(width 0)
@@ -5732,27 +5449,6 @@
 			(type default)
 		)
 		(uuid "9df7c002-a8ea-4b31-969b-7a2c8f6bf575")
-	)
-	(wire
-		(pts
-			(xy 83.82 163.83) (xy 111.76 163.83)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "9f9e0c1f-f39f-4480-ae6a-b7c3db2cd6ca")
-	)
-	(wire
-		(pts
-			(xy 60.96 163.83) (xy 76.2 163.83)
-		)
-		(stroke
-			(width 0)
-			(type default)
-			(color 0 0 0 1)
-		)
-		(uuid "a102232c-c55b-4e69-9818-2cc1333ff4ce")
 	)
 	(wire
 		(pts
@@ -5969,7 +5665,7 @@
 	)
 	(wire
 		(pts
-			(xy 60.96 153.67) (xy 60.96 163.83)
+			(xy 60.96 153.67) (xy 60.96 186.69)
 		)
 		(stroke
 			(width 0)
@@ -6120,7 +5816,7 @@
 	)
 	(wire
 		(pts
-			(xy 111.76 162.56) (xy 111.76 163.83)
+			(xy 111.76 162.56) (xy 111.76 176.53)
 		)
 		(stroke
 			(width 0)
@@ -6255,16 +5951,6 @@
 	)
 	(wire
 		(pts
-			(xy 102.87 170.18) (xy 102.87 176.53)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "e9d8d5f8-f1b5-4906-ac2e-29f22d1965a6")
-	)
-	(wire
-		(pts
 			(xy 83.82 132.08) (xy 102.87 132.08)
 		)
 		(stroke
@@ -6328,7 +6014,7 @@
 	)
 	(wire
 		(pts
-			(xy 151.13 186.69) (xy 146.05 186.69)
+			(xy 60.96 186.69) (xy 151.13 186.69)
 		)
 		(stroke
 			(width 0)
@@ -6379,17 +6065,6 @@
 			(color 194 0 0 1)
 		)
 		(uuid "f2d45a83-28df-47c6-99ce-42bebbf52f04")
-	)
-	(wire
-		(pts
-			(xy 146.05 182.88) (xy 146.05 186.69)
-		)
-		(stroke
-			(width 0)
-			(type default)
-			(color 0 0 0 1)
-		)
-		(uuid "f776ce8f-44f7-46f6-964a-0da77670e433")
 	)
 	(wire
 		(pts
@@ -6881,164 +6556,6 @@
 			(project "schematics"
 				(path "/385b3953-ef63-4505-9807-7d740afdb2e3"
 					(reference "J1")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
-		(lib_id "Diode:PESD3V3S1UL")
-		(at 80.01 163.83 180)
-		(unit 1)
-		(body_style 1)
-		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
-		(in_pos_files yes)
-		(dnp no)
-		(uuid "1e0af325-cc03-416e-89d2-9bacf84ab6b7")
-		(property "Reference" "D2"
-			(at 76.708 165.354 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Value" "PESD3V3S1UL"
-			(at 88.392 165.862 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Footprint" "Diode_SMD:D_SOD-882"
-			(at 80.01 158.75 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Datasheet" "https://assets.nexperia.com/documents/data-sheet/PESD3V3S1UL.pdf"
-			(at 80.01 168.91 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Description" "Unidirectional ESD protection diode, 3.3V, SOD-882"
-			(at 80.01 171.45 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(pin "1"
-			(uuid "a72e62e7-5ac0-45c2-8342-6147f851dedc")
-		)
-		(pin "2"
-			(uuid "d81f83b4-e3bb-47ed-aedf-7f460905a914")
-		)
-		(instances
-			(project "schematics"
-				(path "/385b3953-ef63-4505-9807-7d740afdb2e3"
-					(reference "D2")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
-		(lib_id "Diode:PESD3V3S1UL")
-		(at 80.01 170.18 180)
-		(unit 1)
-		(body_style 1)
-		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
-		(in_pos_files yes)
-		(dnp no)
-		(uuid "20e1ad4c-f9f6-42d9-b782-577f1053de2e")
-		(property "Reference" "D3"
-			(at 76.962 171.958 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Value" "PESD3V3S1UL"
-			(at 88.138 172.466 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Footprint" "Diode_SMD:D_SOD-882"
-			(at 80.01 165.1 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Datasheet" "https://assets.nexperia.com/documents/data-sheet/PESD3V3S1UL.pdf"
-			(at 80.01 175.26 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Description" "Unidirectional ESD protection diode, 3.3V, SOD-882"
-			(at 80.01 177.8 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(pin "2"
-			(uuid "51636923-8d5f-4d1a-8e47-78f6541a40fd")
-		)
-		(pin "1"
-			(uuid "52294962-2593-4a16-bd5e-86c1c6949b3d")
-		)
-		(instances
-			(project "schematics"
-				(path "/385b3953-ef63-4505-9807-7d740afdb2e3"
-					(reference "D3")
 					(unit 1)
 				)
 			)
@@ -9066,85 +8583,6 @@
 				(path "/385b3953-ef63-4505-9807-7d740afdb2e3"
 					(reference "U4")
 					(unit 7)
-				)
-			)
-		)
-	)
-	(symbol
-		(lib_id "Diode:PESD3V3S1UL")
-		(at 146.05 179.07 270)
-		(unit 1)
-		(body_style 1)
-		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
-		(in_pos_files yes)
-		(dnp no)
-		(uuid "9e6f79dd-af65-4788-a125-6594d0030f81")
-		(property "Reference" "D4"
-			(at 149.098 179.07 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Value" "PESD3V3S1UL"
-			(at 142.748 178.308 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1 1)
-				)
-			)
-		)
-		(property "Footprint" "Diode_SMD:D_SOD-882"
-			(at 140.97 179.07 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Datasheet" "https://assets.nexperia.com/documents/data-sheet/PESD3V3S1UL.pdf"
-			(at 151.13 179.07 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Description" "Unidirectional ESD protection diode, 3.3V, SOD-882"
-			(at 153.67 179.07 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(pin "2"
-			(uuid "be01953b-ed8a-4909-b44c-172caae6c2e6")
-		)
-		(pin "1"
-			(uuid "8e9b37e9-29e5-487b-98a8-788dd902f90c")
-		)
-		(instances
-			(project "schematics"
-				(path "/385b3953-ef63-4505-9807-7d740afdb2e3"
-					(reference "D4")
-					(unit 1)
 				)
 			)
 		)
