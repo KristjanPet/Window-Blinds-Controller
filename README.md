@@ -1,3 +1,7 @@
+> [!NOTE]
+> This is the first hardware version of the project. Both the PCB and mechanical design are relatively bulky; a second revision is in development with the goal of reducing the overall size by approximately 80%.<br>
+> Contributions, design ideas, and improvement suggestions are more than welcome.
+
 # Window Blinds Controller
 
 ESP32-S3 based embedded controller for motorized window blinds, built with C++/ESP-IDF, TMC2209 stepper control, FreeRTOS event-driven architecture, MQTT integration, custom KiCad PCB, and custom mechanical parts.
