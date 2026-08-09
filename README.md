@@ -3,12 +3,16 @@
 ESP32-S3 based embedded controller for motorized window blinds, built with C++/ESP-IDF, TMC2209 stepper control, FreeRTOS event-driven architecture, MQTT integration, custom KiCad PCB, and custom mechanical parts.
 
 <p align="center">
-  <img src="Images/final_assembly.jpg" width="32%">
-  <img src="Images/pcb_render.png" width="32%">
-  <img src="Images/cad_parts.png" width="32%">
+  <img src="Images/schematics.png" height="250" >
+  <img src="Images/PCB3D.png" height="250">
+  <img src="Images/Mehanical.png" height="250">
 </p>
-
----
+<p align="center">
+  <img
+    src="Images/window-blinds-calibration-fixed.gif"
+    alt="ESP32-S3 window blinds automatic calibration with sensor verification, homing and stall detection"
+    width="720">
+</p>
 
 ## What this project demonstrates
 
