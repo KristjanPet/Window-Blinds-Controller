@@ -1,5 +1,6 @@
 > [!NOTE]
-> This is the first hardware version of the project. Both the PCB and mechanical design are relatively bulky; a second revision is in development with the goal of reducing the overall size by approximately 80%.<br>
+> This is the first hardware version of the project. Both the PCB and mechanical design are relatively bulky; a second revision is in development with the goal of reducing the overall size by approximately 80%.
+>
 > Contributions, design ideas, and improvement suggestions are more than welcome.
 
 # Window Blinds Controller
