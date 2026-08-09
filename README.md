@@ -1,75 +1,65 @@
-# Window-Blinds-Controller
+> [!NOTE]
+> This is the first hardware version of the project. Both the PCB and mechanical design are relatively bulky; a second revision is in development with the goal of reducing the overall size by approximately 80%.<br>
+> Contributions, design ideas, and improvement suggestions are more than welcome.
 
-## About
-Small embedded project for controlling window blinds using **ESP32** and a **stepper motor**.
+# Window Blinds Controller
 
-The goal is to build a reliable and clean blinds controller that can:
-- open and close blinds with wall buttons,
-- support scheduled opening and closing,
-- use a home/reference position,
-- later connect to a server for remote control and time/date configuration.
+ESP32-S3 based embedded controller for motorized window blinds, built with C++/ESP-IDF, TMC2209 stepper control, FreeRTOS event-driven architecture, MQTT integration, custom KiCad PCB, and custom mechanical parts.
 
----
+<p align="center">
+  <img src="Images/schematics.png" height="250" >
+  <img src="Images/PCB3D.png" height="250">
+  <img src="Images/Mehanical.png" height="250">
+</p>
+<p align="center">
+  <img
+    src="Images/window-blinds-calibration-fixed.gif"
+    alt="ESP32-S3 window blinds automatic calibration with sensor verification, homing and stall detection"
+    width="720">
+</p>
 
-## Project Status
-Early planning and hardware research phase.
+## What this project demonstrates
 
-Current focus:
-- understanding the existing motor and sensor setup,
-- preparing hardware wiring,
-- defining software structure,
-- creating clean project documentation.
-
----
-
-## Planned Features
-- ESP32-based control logic
-- Stepper motor driven blinds movement
-- Wall switch/button control
-- Scheduled open/close actions
-- Home/reference detection
-- Remote configuration over network/server connection
-- Expandable architecture for future features
-
----
-
-## Hardware Notes
-Current prototype assumptions:
-- **ESP32** as main controller
-- **12V stepper motor** 
-- **single NJK home reference sensor**
+- Embedded C++ architecture using separated modules and interfaces
+- ESP32-S3 firmware development with ESP-IDF and PlatformIO
+- FreeRTOS task-based design with a central command/event queue
+- Stepper motor control using RMT pulse generation and PCNT position tracking
+- TMC2209 UART driver configuration and DIAG/stall event handling
+- Homing, calibration, soft limits, stall recovery, and fault-state handling
+- MQTT-based smart-home command interface
+- Unit testing with PlatformIO/Unity and fake hardware abstractions
+- Custom KiCad schematic and PCB design
+- Custom mechanical design: CNC aluminium motor/rope holder and 3D printed enclosure
+- Doxygen API documentation
+- Project planning using Jira and draw.io diagrams
 
 ---
 
-## Development Approach
-This project is being built with focus on:
-- clean structure
-- safe hardware interfacing
-- reliable error handling
-- maintainable embedded architecture
-- documentation-first workflow
+## Hardware
 
----
+Main components:
 
-## Repository Goals
-This repository will contain:
-- project documentation
-- hardware wiring scheme
-- software structure diagrams
-- firmware source code
-- setup and usage instructions
+| Component | Purpose |
+|---|---|
+| ESP32-S3 | Main MCU, Wi-Fi, FreeRTOS firmware |
+| TMC2209 | Stepper motor driver with UART configuration and DIAG/stall signal |
+| Nema 17 Stepper motor | Blind movement |
+| NJK-5002C Home/reference sensor | Calibration and homing |
+| Wall buttons | Local manual control |
+| Custom PCB | Power, MCU, driver, sensor, and connector integration |
 
----
+## Mechanical design
 
-## Initial Task List
-- Research how the system works and prepare documentation
-- Prepare hardware wiring scheme in EasyEDA
-- Define program/software structure in draw.io
-- Initialize repository and project documentation
+The project also includes custom mechanical parts:
 
----
+- CNC aluminium motor and rope holder for the blind mechanism
+- 3D printed front/back mounting holders for aluminium
+- 3D printed electronics case
+- 3D printed cover
+- CAD models and exported STL/STEP files
 
-## hardware wiring scheme
+## Documentation and planning
 
-![schematics](Images/schematics.png)
-
+- Doxygen configuration for generated C++ API documentation
+- draw.io diagrams for system architecture and firmware flow
+- Jira used for task planning, issue tracking, and development organization

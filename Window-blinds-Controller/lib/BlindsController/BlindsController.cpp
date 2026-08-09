@@ -1,7 +1,5 @@
 #include "BlindsController.hpp"
-
 #include <climits>
-
 #include "AppConfig.hpp"
 
 static const char* TAG = "BLINDS";
@@ -382,7 +380,7 @@ esp_err_t BlindsController::handleCommand(const BlindsCommand& command){
         break;
     case BlindsEvent::STALL_DETECTED: {
         int32_t currentStep = motor_.getCurrentStep();
-        if (state_ == BlindsState::CALIBRATING_MAX && currentStep > AppConfig::stepStallThrehold){ //stall detected as limit reached (top)
+        if (state_ == BlindsState::CALIBRATING_MAX && currentStep > AppConfig::stepStallThreshold){ //stall detected as limit reached (top)
             err = motor_.stop();
             if(err == ESP_OK ){
                 if(state_ != BlindsState::FAULT){

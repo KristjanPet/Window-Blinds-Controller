@@ -8,16 +8,30 @@
 
 class ButtonHandler;
 
+/**
+ * @brief Debounced button identity passed from ISR to the button task.
+ */
 enum class ButtonPressed : uint8_t{
-    UP,
-    DOWN
+    UP,   ///< Up/open button.
+    DOWN  ///< Down/close button.
 };
 
+/**
+ * @brief Stable context object passed to a GPIO ISR registration.
+ */
 struct ButtonIsrContext{
-    ButtonHandler* self;
-    ButtonPressed button;
+    ButtonHandler* self;    ///< Button handler instance that owns the queue.
+    ButtonPressed button;   ///< Button represented by this ISR context.
 };
 
+/**
+ * @brief GPIO button reader and debounce task for manual blinds commands.
+ *
+ * Owns the physical button GPIO inputs, ISR-to-task button queue, and debounce
+ * handling. Emits high-level UP/DOWN events through BlindsCommandQueue instead
+ * of directly controlling the motor. The dual-inverter conditioned inputs are
+ * active-high: LOW while idle and HIGH while pressed.
+ */
 class ButtonHandler{
 
 private:
@@ -29,7 +43,26 @@ private:
 
     static void IRAM_ATTR buttonIsr(void *arg);
 public:
+    /**
+     * @brief Create a button handler with button pins and command output queue.
+     *
+     * @param pins GPIO assignments for the up and down buttons.
+     * @param commandQueue Queue used to report debounced button commands.
+     */
     ButtonHandler(const ButtonPins& pins, BlindsCommandQueue& commandQueue);
+
+    /**
+     * @brief Configure button GPIO interrupts and allocate the button queue.
+     *
+     * @return ESP_OK on success, ESP_FAIL on queue allocation failure, or an
+     *         ESP-IDF error from GPIO/ISR setup.
+     */
     esp_err_t init();
+
+    /**
+     * @brief FreeRTOS task entry point that debounces button interrupts.
+     *
+     * @param arg Pointer to the ButtonHandler instance.
+     */
     static void buttonTask(void *arg);
 };

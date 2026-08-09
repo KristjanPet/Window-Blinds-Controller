@@ -55,10 +55,10 @@ If hardware behavior is uncertain, do not guess. State the uncertainty clearly a
 
 Use PlatformIO commands where applicable.
 
-- Build: `pio run -e esp32doit-devkit-v1`
-- Run tests: `pio test -e esp32doit-devkit-v1`
+- Build: `pio run -e esp32-s3`
+- Run tests: `pio test -e esp32-s3`
 - Clean build if needed: `pio run -t clean`
-- Generate compilation database if needed: `pio run -e esp32doit-devkit-v1 -t compiledb`
+- Generate compilation database if needed: `pio run -e esp32-s3 -t compiledb`
 
 If the environment name changes in `platformio.ini`, use the actual environment name from that file.
 
