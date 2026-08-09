@@ -4,6 +4,11 @@ This folder contains the mechanical design files for the window blinds controlle
 
 The design includes CNC-machined aluminium parts, 3D printed holders, and a 3D printed electronics enclosure.
 
+<p align="center">
+  <img src="../Images/Mehanical.png" height="300">
+  <img src="../Images/Mehanical2.png" height="300">
+</p>
+
 ## Main parts
 
 | Part              | Manufacturing method        | Purpose                                                        |
