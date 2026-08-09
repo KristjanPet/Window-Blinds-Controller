@@ -4,6 +4,10 @@ This folder contains the PCB and electronics design files for the window blinds 
 
 The electronics are built around an ESP32-S3 development board, a TMC2209 stepper motor driver, a 12 V to 5 V buck converter, input protection, button/sensor connectors, and dual-inverter Schmitt-trigger input paths.
 
+## Schematics
+
+<img src="../Images/schematics.png">
+
 ## Main electronics
 
 | Component                  | Qty | Value / Part                | Purpose                                                                 |
@@ -12,7 +16,6 @@ The electronics are built around an ESP32-S3 development board, a TMC2209 steppe
 | Stepper driver             |   1 | `TMC2209 SilentStepStick`   | Stepper motor driver with UART configuration and DIAG/StallGuard output |
 | Buck converter             |   1 | 12 V to 3 V DC-DC buck      | Generates 3 V supply from the 12 V input                                |
 | Schmitt trigger            |   1 | `74HC14`                    | Cleans three input signals with two inverter gates per signal            |
-| ESD protection diodes      |   3 | `PESD3V3S1UL`               | Input signal protection                                                 |
 | TVS diode                  |   1 | `SMBJ15A`                   | 12 V input transient protection                                         |
 | Polyfuse                   |   1 | 2 A                         | Input overcurrent protection                                            |
 
@@ -73,6 +76,12 @@ Possible future optimizations:
 * replace the buck converter module with an onboard SMD regulator circuit
 * reduce connector size or move connectors based on the final enclosure
 * optimize PCB shape for the mechanical case
+
+<p align="center">
+  <img src="../Images/PCB.png" height="250" >
+  <img src="../Images/PCB3D.png" height="250">
+  <img src="../Images/PCB3D2.png" height="250">
+</p>
 
 ## Safety note
 
