@@ -21,11 +21,12 @@ import cadquery as cq
 DEFAULT_REFERENCE = Path(__file__).resolve().parent / "references" / "reference_assembly.step"
 
 
-def describe(shape: cq.Shape, label: str) -> bool:
+def describe(shape: cq.Shape, label: str) -> tuple[bool, bool]:
     """Report imported geometry; validity does not establish mechanical fitness."""
     solids = shape.Solids()
     bbox = shape.BoundingBox()
-    valid = bool(solids) and shape.isValid()
+    solids_valid = bool(solids)
+    container_valid = shape.isValid()
     print(f"Model: {label}")
     print(f"CadQuery: {version('cadquery')} | OCP: {version('cadquery-ocp')}")
     print("Dimension convention: mm; check import scale against a known physical dimension.")
@@ -34,14 +35,15 @@ def describe(shape: cq.Shape, label: str) -> bool:
     for index, solid in enumerate(solids, start=1):
         box = solid.BoundingBox()
         solid_valid = solid.isValid() and solid.Volume() > 0
-        valid = valid and solid_valid
+        solids_valid = solids_valid and solid_valid
         print(
             f"  solid_{index:03d}: size=({box.xlen:.3f}, {box.ylen:.3f}, {box.zlen:.3f}) "
             f"min=({box.xmin:.3f}, {box.ymin:.3f}, {box.zmin:.3f}) mm "
             f"volume={solid.Volume():.3f} mm^3 valid={solid_valid}"
         )
-    print(f"Solid geometry check: {'PASS' if valid else 'FAIL'}")
-    return valid
+    print(f"Individual solid checks: {'PASS' if solids_valid else 'FAIL'}")
+    print(f"Whole imported shape check: {'PASS' if container_valid else 'FAIL'}")
+    return solids_valid, container_valid
 
 
 def main() -> int:
@@ -49,7 +51,10 @@ def main() -> int:
     source = parser.add_mutually_exclusive_group()
     source.add_argument("--demo", action="store_true", help="Show a sample block for setup only.")
     source.add_argument("--file", type=Path, help="Inspect another STEP file without relocating it.")
-    parser.add_argument("--check-only", action="store_true", help="Check geometry without a viewer.")
+    parser.add_argument(
+        "--check-only", action="store_true",
+        help="Check geometry without a viewer; fail if any solid or its container is invalid.",
+    )
     parser.add_argument("--port", type=int, help="OCP viewer port, if more than one viewer is running.")
     args = parser.parse_args()
 
@@ -71,10 +76,19 @@ def main() -> int:
             return 2
         label = path.name
 
-    if not describe(shape, label):
+    solids_valid, container_valid = describe(shape, label)
+    if not solids_valid:
         return 2
     if args.check_only:
-        return 0
+        return 0 if container_valid else 2
+
+    if not container_valid:
+        print(
+            "WARNING: The assembly container failed its geometry check. "
+            "Previewing only the individually valid solids at their original coordinates. "
+            "The container has not been repaired; --check-only still reports failure.",
+            file=sys.stderr,
+        )
 
     # Keeping this import in the file also allows the VS Code extension to
     # recognise it and start the viewer when the file is opened.
@@ -83,7 +97,11 @@ def main() -> int:
     if args.port is not None:
         set_port(args.port)
     try:
-        show(shape, names=[label])
+        if container_valid:
+            show(shape, names=[label])
+        else:
+            solids = shape.Solids()
+            show(*solids, names=[f"{label}: solid_{i:03d}" for i in range(1, len(solids) + 1)])
     except Exception as exc:
         print(f"Viewer connection failed: {exc}", file=sys.stderr)
         print("Start OCP CAD Viewer in VS Code, then run this file again.", file=sys.stderr)
