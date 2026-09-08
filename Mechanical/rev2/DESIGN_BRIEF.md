@@ -3,10 +3,11 @@
 ## Goal
 
 Redesign the custom mechanics of the Window Blinds Controller for wall
-mounting, with the motor underneath the window. Its placement relative to the
-sill (above or below it) still needs clarification. Make the custom
-structural parts and enclosure suitable for 3D printing. This is a full
-mechanical revision, not simply a copy of the aluminium holder in plastic.
+mounting, with the motor between the sill and the window opening. Suspend the
+assembly from the wall, preferably touching neither the sill nor the window.
+Use a new L-shaped wall holder to support the complete mechanism and current
+PCB/enclosure. Make the custom structural parts and enclosure suitable for
+3D printing.
 
 ## Fixed references from the user
 
@@ -18,10 +19,32 @@ mechanical revision, not simply a copy of the aluminium holder in plastic.
   components, connector access and wiring clearance. A removable PCB tray is
   a proposed way to accommodate a later board revision, not an approved design.
 
-All other custom mechanical parts, drive layout and gearing may be redesigned.
-The existing 1:8 timing-belt reduction is historical context, not a required
-ratio for revision 2. Standard purchased parts such as belts, shafts, bearings
-and fasteners may be needed; their selection has not been decided.
+## Mechanism requirements confirmed by the user
+
+- Remove the existing holder and replace it with an L-shaped wall bracket,
+  retaining the existing two wall screw positions.
+- Support the whole mechanism from this bracket. Aim for clearance from both
+  the sill and the moving window, without relying on the sill for support.
+- Retain the NEMA 17 motor and require an **8:1 speed reduction**: eight motor
+  revolutions for one winding-drum revolution (the user's "1:8" ratio).
+- Prioritize quiet, smooth operation. Transmission type, tooth geometry and
+  stage count remain design choices; the reduction ratio is fixed.
+- Mount the winding cylinder coaxially with the larger driven gear/pulley.
+  Surface 8 represents this cylinder. Its nominal axial winding width is
+  **15 mm**, matching a lifting belt approximately 15 mm wide or slightly less.
+  The 15 mm measurement is a width, not a drum diameter.
+- The blinds' lifting belt descends between the window and wall, following
+  the route visible in the existing project. Align the winding drum with that
+  route; establish the exact entry point and direction before placing it.
+- Provide running clearance for the belt at the drum flanges. Final usable
+  winding width, core diameter and fully wound diameter need to be sized from
+  the actual belt and required winding length.
+- Keep the current PCB and its required component, connector and wire space.
+
+Other custom mechanical parts and the detailed drive layout may be
+redesigned. Standard purchased parts such as transmission belts, shafts,
+bearings and fasteners may be needed; their selection has not been decided.
+The lifting belt and a possible transmission timing belt are distinct parts.
 
 ## Working setup
 
@@ -48,7 +71,7 @@ and fasteners may be needed; their selection has not been decided.
 5. Propose a compact drive arrangement and explain what makes it fit.
 
 The existing wall mounting surface and two fixing centres are identified
-below. Printer/build volume, print material, cord geometry and drive-load
+below. Printer/build volume, print material, lifting-belt details and drive-load
 requirements have not yet been established for this revision. Determine them
 before they affect a design choice. Do not assume that nominal motor holding torque is available
 throughout motion or that mesh validity proves strength, thermal performance
@@ -69,8 +92,8 @@ Source file SHA-256:
 | --- | --- |
 | Wall | Fixed wall and shelf/sill geometry; new parts must respect these obstructions. |
 | Window | Curved window-opening clearance volume; keep this space empty. It is not a component to print. |
-| Front Holder | Existing wall-mounted holder, called the back holder by the user. Use only its wall screw positions; its body may be redesigned or removed. |
-| Surface 8 | Width reference only. The user will supply the relevant width and its endpoints; do not derive it from this imported surface. |
+| Front Holder | Existing wall-mounted holder, called the back holder by the user. Remove it; retain only its wall screw positions for the new L bracket. |
+| Surface 8 | Winding-cylinder reference. User confirms 15 mm nominal axial winding width for the lifting belt. Diameter and final winding clearance remain to be determined. |
 
 The import contains three individually valid solids plus an invalid shell
 corresponding to the tessellated Surface 8 representation. This explains the
@@ -102,19 +125,53 @@ overlap. This is a geometric separation, not a confirmed usable box or an
 allowance for the enclosure, print tolerances and window clearance. Check
 candidate parts against the actual curved volume with an agreed margin.
 
+### Preliminary motor fit check
+
+A temporary 42 x 40 x 42 mm rectangular motor-body envelope, with its minimum
+corner at (140, -70, 24.3), has no solid overlap with either Wall or Window.
+OpenCascade reports 3.0 mm minimum distance to each. This demonstrates one
+possible placement for the motor body within the 48 mm vertical separation.
+
+The 42 mm frame and 40 mm body length are preliminary nominal dimensions
+consistent with the
+[MotionKing 17HS4401 family specification](https://www.motionking.com/products/Hybrid_Stepper_Motors/17HS_Stepper_Motor_42mm_1.8degree.htm).
+Verify the actual motor: the envelope excludes its shaft, pilot boss,
+connector, leads, screws, bracket and transmission. Its location is a fit
+study only; final alignment must follow the belt route. It does not establish
+that the complete assembly fits.
+
 ### Remaining inputs for layout
 
-- The width represented by Surface 8, including the two features it measures.
-- Whether the motor belongs above the sill, beneath the opening, or physically
-  below the sill.
-- Motor mounting/shaft dimensions and populated PCB dimensions. The existing
-  repository PCB layout can provide board outline and hole positions, while
-  component heights and connector/wire space need verification.
-- Cord route and drive interface, then load, access and printing constraints
-  as needed for the chosen arrangement.
+- Lifting-belt thickness and maximum length that must wind onto the drum,
+  to calculate the fully wound diameter. Include any belt retained on the
+  drum at the fully lowered position.
+- Exact belt entry location and winding direction. A simple user sketch
+  showing the wall, sill, opening clearance, descending belt, motor and drum
+  would resolve placement without requiring a new detailed CAD export.
+- Actual motor mounting/shaft dimensions and populated PCB dimensions. The
+  existing repository PCB layout can provide board outline and hole positions,
+  while component heights and connector/wire space need verification.
+- Drive load, assembly/service access, printer and material constraints as
+  needed for the chosen arrangement.
+
+### Design approach to evaluate
+
+Use the L bracket's wall leg for the existing fixings and its projecting arm
+to carry the motor, transmission and drum. Evaluate ribs/gussets and output
+shaft support on the bracket so lifting-belt loads do not depend on a printed
+cantilever shaft alone. Size the mechanism around the fully wound drum and
+check all new parts against the original wall and window-clearance solids.
+
+Evaluate transmission options for the required 8:1 reduction before choosing
+tooth counts or publishing printable gears. If using a timing belt, provide
+controlled tension and alignment; these affect noise, as explained by
+[Pfeifer Industries](https://www.pfeiferindustries.com/troubleshooting/timing-belt-unusual-excessive-noise).
+Quietness and smoothness need verification with the assembled mechanism
+under load.
 
 ## Current status
 
-The installation reference has been inspected and its roles recorded.
-The scripts remain setup/reference-inspection tools; no revision-2 parts
-are ready for printing.
+The installation constraints and mechanism requirements are recorded, and a
+preliminary motor-body envelope fits between the sill and window clearance.
+The complete bracket, transmission, winding drum and PCB arrangement have not
+yet been modelled; no revision-2 parts are ready for printing.
