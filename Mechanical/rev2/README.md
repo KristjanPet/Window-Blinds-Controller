@@ -1,8 +1,11 @@
 # Window Blinds Controller: revision 2 workspace
 
 Start here in VS Code using the **blinds-cad** Python 3.12 environment.
-This folder provides a reference viewer and the agreed brief. No revision-2
-mount, enclosure, gearing or print-ready parts have been designed yet.
+This folder contains the original reference viewer and a compact mechanical
+fit prototype with the belt entering on the wall side. Start with
+[LAYOUT.md](LAYOUT.md) to view the replacement L
+bracket, 8:1 herringbone drive and winding drum. The model is not a print
+release; fastening, bearing fits and PCB placement remain unfinished.
 
 ## 1. Bring in the Onshape references
 
@@ -67,13 +70,16 @@ python Mechanical/rev2/preview.py --file Mechanical/Case.step --check-only
 
 ## 3. Continue with local Codex
 
-Ask local Codex to read this file and `DESIGN_BRIEF.md`, inspect the references
-and run `preview.py --check-only`. Its first design task is to establish the
-coordinate system, fixed geometry, available space and missing dimensions,
-then propose a compact mechanism layout with the motor below the window.
+Ask local Codex to read `DESIGN_BRIEF.md` and `LAYOUT.md`, then work from
+`layout.py` and `gears.py`. Run the layout clearance and tooth-interference
+checks before changing the prototype. Preserve the existing reference
+coordinates and wall fixing centres. The generic `preview.py --check-only`
+still flags the known invalid Surface 8 shell; the layout excludes that shell.
 
-Use measured geometry before choosing gearing or drawing print-ready parts.
-Keep the brief and subsequent dimensions alongside the modelling scripts.
+The required reduction is now fixed at 8:1. Keep changes and measured or
+provisional dimensions documented alongside the modelling scripts. Finish
+the actual belt alignment, mechanical attachments and PCB arrangement before
+developing physical fit samples and a functional print release.
 
 ## Dependencies
 

@@ -1,0 +1,266 @@
+{
+  "status": "fit prototype, not a print release",
+  "passed": true,
+  "detailed_teeth": true,
+  "parameters": {
+    "wall_x": 237.0053,
+    "screw_y": -4.3652,
+    "lower_screw_z": 35.8,
+    "upper_screw_z": 128.8,
+    "sill_z": 21.3,
+    "window_bottom_z": 69.3,
+    "back_wall_y": 10.9348,
+    "back_wall_clearance": 2.0,
+    "mounting_return_thickness": 6.0,
+    "backplate_thickness": 6.0,
+    "running_clearance": 1.0,
+    "motor_size": 42.0,
+    "motor_length": 40.0,
+    "motor_shaft_d": 5.0,
+    "motor_shaft_length": 24.0,
+    "motor_face_y": -16.0,
+    "motor_axis_z": 45.3,
+    "pinion_teeth": 20,
+    "output_teeth": 160,
+    "transverse_module": 0.75,
+    "gear_width": 8.0,
+    "helix_angle": 20.0,
+    "backlash": 0.18,
+    "drum_core_d": 25,
+    "flange_radial_height": 25,
+    "winding_width": 16.0,
+    "flange_thickness": 2.0,
+    "belt_entry_side": 1,
+    "bearing_id": 8.0,
+    "bearing_od": 22.0,
+    "bearing_width": 7.0,
+    "bearing_pocket_d": 22.2,
+    "axle_d": 8.0,
+    "axle_hole_d": 8.1
+  },
+  "checks": [
+    {
+      "part": "Compact L wall bracket - fit prototype",
+      "valid": true,
+      "wall_overlap_mm3": 0.0,
+      "window_overlap_mm3": 0.0,
+      "window_distance_mm": 8.7
+    },
+    {
+      "part": "NEMA 17 - nominal body and shaft",
+      "valid": true,
+      "wall_overlap_mm3": 0.0,
+      "window_overlap_mm3": 0.0,
+      "window_distance_mm": 3.0
+    },
+    {
+      "part": "20T motor pinion - prototype teeth",
+      "valid": true,
+      "wall_overlap_mm3": 0.0,
+      "window_overlap_mm3": 0.0,
+      "window_distance_mm": 28.2348
+    },
+    {
+      "part": "160T output gear and drum - prototype teeth",
+      "valid": true,
+      "wall_overlap_mm3": 0.0,
+      "window_overlap_mm3": 0.0,
+      "window_distance_mm": 2.577
+    },
+    {
+      "part": "608 bearing 1 - 8 x 22 x 7 envelope",
+      "valid": true,
+      "wall_overlap_mm3": 0.0,
+      "window_overlap_mm3": 0.0,
+      "window_distance_mm": 5.6105
+    },
+    {
+      "part": "608 bearing 2 - 8 x 22 x 7 envelope",
+      "valid": true,
+      "wall_overlap_mm3": 0.0,
+      "window_overlap_mm3": 0.0,
+      "window_distance_mm": 26.5048
+    },
+    {
+      "part": "Fixed 8 mm steel axle - 39.0 mm, prototype groove",
+      "valid": true,
+      "wall_overlap_mm3": 0.0,
+      "window_overlap_mm3": 0.0,
+      "window_distance_mm": 2.8422
+    },
+    {
+      "part": "Axle retaining ring - provisional hardware envelope",
+      "valid": true,
+      "wall_overlap_mm3": 0.0,
+      "window_overlap_mm3": 0.0,
+      "window_distance_mm": 3.6507
+    },
+    {
+      "part": "front inner-ring spacer - length 1.5 mm",
+      "valid": true,
+      "wall_overlap_mm3": 0.0,
+      "window_overlap_mm3": 0.0,
+      "window_distance_mm": 4.6771
+    },
+    {
+      "part": "rear inner-ring spacer - length 1.5 mm",
+      "valid": true,
+      "wall_overlap_mm3": 0.0,
+      "window_overlap_mm3": 0.0,
+      "window_distance_mm": 34.023
+    },
+    {
+      "rotation_envelope": "pinion",
+      "obstacle": "Compact L wall bracket - fit prototype",
+      "overlap_mm3": 0.0,
+      "distance_mm": 1.0
+    },
+    {
+      "rotation_envelope": "pinion",
+      "obstacle": "NEMA 17 - nominal body and shaft",
+      "overlap_mm3": 0.0,
+      "distance_mm": 0.05
+    },
+    {
+      "rotation_envelope": "pinion",
+      "obstacle": "Fixed 8 mm steel axle - 39.0 mm, prototype groove",
+      "overlap_mm3": 0.0,
+      "distance_mm": 55.25
+    },
+    {
+      "rotation_envelope": "pinion",
+      "obstacle": "Axle retaining ring - provisional hardware envelope",
+      "overlap_mm3": 0.0,
+      "distance_mm": 57.6156
+    },
+    {
+      "rotation_envelope": "pinion",
+      "obstacle": "front inner-ring spacer - length 1.5 mm",
+      "overlap_mm3": 0.0,
+      "distance_mm": 57.5266
+    },
+    {
+      "rotation_envelope": "pinion",
+      "obstacle": "rear inner-ring spacer - length 1.5 mm",
+      "overlap_mm3": 0.0,
+      "distance_mm": 53.75
+    },
+    {
+      "rotation_envelope": "pinion",
+      "obstacle": "Wall",
+      "overlap_mm3": 0.0,
+      "distance_mm": 9.0
+    },
+    {
+      "rotation_envelope": "pinion",
+      "obstacle": "Window",
+      "overlap_mm3": 0.0,
+      "distance_mm": 28.2228
+    },
+    {
+      "rotation_envelope": "rotor",
+      "obstacle": "Compact L wall bracket - fit prototype",
+      "overlap_mm3": 0.0,
+      "distance_mm": 1.0
+    },
+    {
+      "rotation_envelope": "rotor",
+      "obstacle": "NEMA 17 - nominal body and shaft",
+      "overlap_mm3": 0.0,
+      "distance_mm": 1.2628
+    },
+    {
+      "rotation_envelope": "rotor",
+      "obstacle": "Fixed 8 mm steel axle - 39.0 mm, prototype groove",
+      "overlap_mm3": 0.0,
+      "distance_mm": 0.3
+    },
+    {
+      "rotation_envelope": "rotor",
+      "obstacle": "Axle retaining ring - provisional hardware envelope",
+      "overlap_mm3": 0.0,
+      "distance_mm": 5.1971
+    },
+    {
+      "rotation_envelope": "rotor",
+      "obstacle": "front inner-ring spacer - length 1.5 mm",
+      "overlap_mm3": 0.0,
+      "distance_mm": 5.6
+    },
+    {
+      "rotation_envelope": "rotor",
+      "obstacle": "rear inner-ring spacer - length 1.5 mm",
+      "overlap_mm3": 0.0,
+      "distance_mm": 5.6
+    },
+    {
+      "rotation_envelope": "rotor",
+      "obstacle": "Wall",
+      "overlap_mm3": 0.0,
+      "distance_mm": 7.0
+    },
+    {
+      "rotation_envelope": "rotor",
+      "obstacle": "Window",
+      "overlap_mm3": 0.0,
+      "distance_mm": 2.577
+    }
+  ],
+  "placement": {
+    "drum_axis_x": 169.2553,
+    "drum_axis_z": 101.25701475239723,
+    "motor_axis_x": 207.0053,
+    "motor_axis_z": 45.3,
+    "gear_front_y": -6.065200000000001,
+    "drum_front_y": -27.0652,
+    "wall_return_to_gear_envelope": 1.0,
+    "backplate_to_back_wall": 2.0
+  },
+  "mesh_samples": [
+    {
+      "pinion_degrees": 0.0,
+      "output_degrees": -0.0,
+      "interference_mm3": 0.0
+    },
+    {
+      "pinion_degrees": 2.25,
+      "output_degrees": -0.28125,
+      "interference_mm3": 0.0
+    },
+    {
+      "pinion_degrees": 4.5,
+      "output_degrees": -0.5625,
+      "interference_mm3": 0.0
+    },
+    {
+      "pinion_degrees": 6.75,
+      "output_degrees": -0.84375,
+      "interference_mm3": 0.0
+    },
+    {
+      "pinion_degrees": 9.0,
+      "output_degrees": -1.125,
+      "interference_mm3": 0.0
+    },
+    {
+      "pinion_degrees": 11.25,
+      "output_degrees": -1.40625,
+      "interference_mm3": 0.0
+    },
+    {
+      "pinion_degrees": 13.5,
+      "output_degrees": -1.6875,
+      "interference_mm3": 0.0
+    },
+    {
+      "pinion_degrees": 15.75,
+      "output_degrees": -1.96875,
+      "interference_mm3": 0.0
+    },
+    {
+      "pinion_degrees": 18.0,
+      "output_degrees": -2.25,
+      "interference_mm3": 0.0
+    }
+  ]
+}

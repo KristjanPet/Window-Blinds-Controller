@@ -25,6 +25,12 @@ PCB/enclosure. Make the custom structural parts and enclosure suitable for
   retaining the existing two wall screw positions.
 - Support the whole mechanism from this bracket. Aim for clearance from both
   the sill and the moving window, without relying on the sill for support.
+- Keep every component as close to the mounting wall as its running,
+  installation and window clearances allow. The revised layout also moves
+  the gear/drum stack toward the rear wall.
+- Reverse the first preview's belt entry to the opposite tangent. The current
+  interpretation is the wall-facing side of the drum (+X), with the belt
+  still descending from above.
 - Retain the NEMA 17 motor and require an **8:1 speed reduction**: eight motor
   revolutions for one winding-drum revolution (the user's "1:8" ratio).
 - Prioritize quiet, smooth operation. Transmission type, tooth geometry and
@@ -36,9 +42,19 @@ PCB/enclosure. Make the custom structural parts and enclosure suitable for
 - The blinds' lifting belt descends between the window and wall, following
   the route visible in the existing project. Align the winding drum with that
   route; establish the exact entry point and direction before placing it.
-- Provide running clearance for the belt at the drum flanges. Final usable
-  winding width, core diameter and fully wound diameter need to be sized from
-  the actual belt and required winding length.
+- The user reports that a 25 mm cylinder with a 25 mm surrounding wall held
+  enough lifting belt. Belt thickness and winding length are unavailable.
+  Treat that empirical capacity as the starting point; do not require the same
+  unavailable measurements again.
+- The sketch confirms the motor under the opening and the large gear/drum
+  beside it, with the lifting belt descending from above. The user allows
+  the bearing/support arrangement to be chosen.
+- The user has 8 x 22 x 7 mm bearings. Use two as the starting bearing arrangement.
+- Allow side clearance around the approximately 15 mm lifting belt. The first
+  prototype uses a 16 mm winding channel and a 25 mm core diameter.
+- The meaning of "25 mm wall around it" remains ambiguous. The first prototype
+  conservatively treats it as radial height, giving 75 mm flange diameter.
+  Both dimensions remain adjustable; smaller flanges must still hold the belt.
 - Keep the current PCB and its required component, connector and wire space.
 
 Other custom mechanical parts and the detailed drive layout may be
@@ -142,12 +158,13 @@ that the complete assembly fits.
 
 ### Remaining inputs for layout
 
-- Lifting-belt thickness and maximum length that must wind onto the drum,
-  to calculate the fully wound diameter. Include any belt retained on the
-  drum at the fully lowered position.
-- Exact belt entry location and winding direction. A simple user sketch
-  showing the wall, sill, opening clearance, descending belt, motor and drum
-  would resolve placement without requiring a new detailed CAD export.
+- Resolve whether the user's 25 mm surrounding wall means radial height.
+  Verify capacity against the previously adequate drum rather than demanding
+  unavailable belt thickness/length measurements.
+- The coloured sketch has been supplied. The user requested the opposite
+  belt-entry side after the first preview; the compact layout uses the
+  wall-facing tangent (+X). Check its exact alignment against the installation;
+  the blue route is illustrative.
 - Actual motor mounting/shaft dimensions and populated PCB dimensions. The
   existing repository PCB layout can provide board outline and hole positions,
   while component heights and connector/wire space need verification.
@@ -162,16 +179,38 @@ shaft support on the bracket so lifting-belt loads do not depend on a printed
 cantilever shaft alone. Size the mechanism around the fully wound drum and
 check all new parts against the original wall and window-clearance solids.
 
-Evaluate transmission options for the required 8:1 reduction before choosing
-tooth counts or publishing printable gears. If using a timing belt, provide
-controlled tension and alignment; these affect noise, as explained by
-[Pfeifer Industries](https://www.pfeiferindustries.com/troubleshooting/timing-belt-unusual-excessive-noise).
-Quietness and smoothness need verification with the assembled mechanism
-under load.
+The compact fit prototype uses a 20T/160T external herringbone pair (8:1), with
+0.75 mm transverse module, 8 mm face width and 67.5 mm shaft spacing. The
+output gear/drum contains two 608 bearings and turns on a fixed 8 mm steel
+axle clamped at the rear of the L bracket. The 39 mm axle is cantilevered;
+the earlier front fork was removed to clear the curved window when moved
+toward the wall. Retaining-ring and groove geometry is provisional. This
+arrangement still requires a loaded stiffness check, finished retention,
+tooth finishing and noise trials.
+
+The output axis is now at X/Z = 169.2553/101.2570 mm and the motor axis at
+207.0053/45.3000 mm. Both axes are parallel to Y. This moves the output
+99.2553 mm and the motor 137.0053 mm closer to the mounting wall than the
+first preview, with a 128.5 mm maximum gear-envelope projection from that
+wall. The gear's full rotation envelope has 1 mm clearance to the wall leg.
+
+See [LAYOUT.md](LAYOUT.md) for the source, dimensions, checks and limitations.
+The detailed gears and conservative rotation envelopes clear the existing
+references and supports; sampled tooth positions have no solid interference.
 
 ## Current status
 
-The installation constraints and mechanism requirements are recorded, and a
-preliminary motor-body envelope fits between the sill and window clearance.
-The complete bracket, transmission, winding drum and PCB arrangement have not
-yet been modelled; no revision-2 parts are ready for printing.
+An editable compact fit prototype is available in layout.py and gears.py.
+It includes the replacement L bracket, nominal motor, herringbone gear pair,
+drum, two 608 bearing envelopes, a shorter fixed steel axle, a provisional
+retaining ring and inner-ring spacers. The belt enters the wall-facing side.
+The old holder and Surface 8 are excluded.
+
+The nominal motor retains 3 mm sill/window clearance. The current layout
+passes solid and conservative rotation-envelope checks and nine coupled
+tooth-interference samples. The drum's conservative envelope clears the
+window by 2.577 mm and the nominal motor by 1.263 mm. These are geometric
+margins before print errors or deflection. The exact belt entry, flange interpretation,
+pinion attachment, belt anchor, bearing retention/fits, clamp/assembly
+hardware, populated PCB placement and loaded/thermal performance remain
+unfinished. No revision-2 parts are released for printing.
