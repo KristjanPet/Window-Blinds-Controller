@@ -34,6 +34,25 @@ output gear/drum, blue belt illustration, and transparent fixed references.
 Hide the references in the viewer tree, or use `--parts-only`, to inspect the
 mechanism. The old holder and Surface 8 are not included in this assembly.
 
+### If the viewer does not connect
+
+Open `layout.py` in VS Code and wait for the OCP CAD Viewer panel to start.
+You can also start the viewer from its sidebar. Then use the port displayed
+by the viewer (3939 in the current setup):
+
+```powershell
+python layout.py --detailed --port 3939
+```
+
+The script checks the viewer connection before building the gears, resolves
+an actual numeric port and resets the camera when displaying the assembly.
+`--check-only` and STEP exports with `--check-only` work without a viewer.
+
+In OCP 4.0.1, failed viewer discovery can produce a `Port could not be cast
+to integer value as 'None'` error followed by collapse/camera warnings.
+Those messages concern display; they do not invalidate completed geometry
+checks. See the [OCP CAD Viewer usage instructions](https://github.com/bernhard-42/vscode-ocp-cad-viewer#usage).
+
 ## Arrangement
 
 | Item | Compact layout |

@@ -19,6 +19,7 @@ import hashlib
 import json
 from math import atan2, degrees, sqrt
 from pathlib import Path
+import socket
 
 import cadquery as cq
 
@@ -361,6 +362,29 @@ def mesh_check(parts, p):
     return all(r["interference_mm3"] < 1e-5 for r in result), result
 
 
+def connect_viewer(port=None):
+    """Resolve a reachable viewer before spending time building the gears."""
+    from ocp_vscode import get_port, set_port
+
+    # OCP 4.0.1 can return None when discovery finds no running viewer.
+    # Give the user a useful startup message instead of connecting to :None.
+    selected = int(port if port is not None else (get_port() or 3939))
+    if not 1 <= selected <= 65535:
+        raise ValueError("Viewer port must be between 1 and 65535.")
+    try:
+        with socket.create_connection(("127.0.0.1", selected), timeout=1):
+            pass
+    except OSError as exc:
+        raise ValueError(
+            f"Viewer port {selected} is not reachable. Open layout.py in VS Code "
+            "and start the OCP CAD Viewer from its sidebar. Wait for the viewer "
+            f"panel, then run again with --port {selected} (or the port shown "
+            "by the viewer). Use --check-only for geometry checks without a viewer."
+        ) from exc
+    set_port(selected)
+    return selected
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--reference", type=Path, default=REFERENCE)
@@ -373,12 +397,14 @@ def main():
     parser.add_argument("--core-diameter", type=float, default=25)
     parser.add_argument("--flange-height", type=float, default=25,
                         help="Provisional RADIAL wall height above the core; default gives flange diameter 75.")
-    parser.add_argument("--port", type=int)
+    parser.add_argument("--port", type=int, help="Viewer port; otherwise discover it, with a 3939 fallback.")
     args = parser.parse_args()
     if args.check_mesh and not args.detailed:
         parser.error("--check-mesh requires --detailed; blank rotation envelopes intentionally overlap.")
     p = replace(Parameters(), drum_core_d=args.core_diameter, flange_radial_height=args.flange_height)
     try:
+        if not args.check_only:
+            viewer_port = connect_viewer(args.port)
         wall, window = references(args.reference.expanduser().resolve())
         parts = build(p, args.detailed)
         good, results = checks(parts, p, wall, window)
@@ -425,7 +451,7 @@ def main():
         assembly.export(str(args.export))
         print("STEP written:", args.export)
     if not args.check_only:
-        from ocp_vscode import show
+        from ocp_vscode import Camera, show
         objects = [q.shape for q in parts]
         names = [q.name for q in parts]
         colors = [q.color for q in parts]
@@ -435,8 +461,8 @@ def main():
             names += ["Wall and sill - fixed", "Window opening - keep clear"]
             colors += ["#928a82", "#919faa"]
             alphas += [.15, .22]
-        show(*objects, names=names, colors=colors, alphas=alphas, port=args.port,
-             axes=True, grid=True, up="Z")
+        show(*objects, names=names, colors=colors, alphas=alphas, port=viewer_port,
+             axes=True, grid=True, up="Z", reset_camera=Camera.RESET)
     return 0
 
 
